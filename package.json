@@ -1,0 +1,19 @@
+{
+  "name": "lci-database-manager",
+  "version": "1.0.0",
+  "description": "An interface to interactively manage an SQL database in a responsive and intuitive way. (MongoDB count your days)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aoof/lci-database-manager.git"
+  },
+  "author": "Abdulrahman Mousa",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/aoof/lci-database-manager/issues"
+  },
+  "homepage": "https://github.com/aoof/lci-database-manager#readme"
+}
