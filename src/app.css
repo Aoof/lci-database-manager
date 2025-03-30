@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+@plugin "@tailwindcss/typography";
+
 @import "tw-animate-css";
 /*
   ---break---
@@ -22,6 +24,10 @@
   ::backdrop,
   ::file-selector-button {
     border-color: var(--color-gray-200, currentColor);
+  }
+
+  html {
+    @apply font-sans;
   }
 }
 
@@ -103,7 +109,6 @@
 /*
   ---break---
 */
-
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
