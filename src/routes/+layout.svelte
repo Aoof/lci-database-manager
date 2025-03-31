@@ -17,7 +17,7 @@
 		<Separator orientation="vertical" class="h-8" />
 		<Button variant="link" href="/report">Report</Button>
 		<Separator orientation="vertical" class="h-8" />
-		<Button variant="default" href="/database-manager">Database Manager</Button>
+		<Button variant="secondary" href="/database-manager">Database Manager</Button>
 	</ul>
 </nav>
 

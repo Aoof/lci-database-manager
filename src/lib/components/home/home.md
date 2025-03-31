@@ -1,4 +1,4 @@
-# LCI Databases Management (Report Page)
+# LCI Databases Management (Home Page)
 
 ## About the Project
 
