@@ -5,15 +5,15 @@
     import "highlight.js/styles/atom-one-dark-reasonable.css";
     import { marked } from 'marked';
 
-    import reportMarkdown from './report.md?raw';
+    import homeMarkdown from './home.md?raw';
 
-    let reportHtml: string;
+    let homeHtml: string;
 
     let isLoading = true;
 
     onMount(async () => {
         isLoading = true;
-        reportHtml = await marked.parse(reportMarkdown);
+        homeHtml = await marked.parse(homeMarkdown);
 
         await tick();
         document.querySelectorAll('pre code').forEach((block : Element) => {
@@ -31,5 +31,5 @@
 {/if}
 
 <div class="prose prose-invert max-w-none">
-    {@html reportHtml}
+    {@html homeHtml}
 </div>

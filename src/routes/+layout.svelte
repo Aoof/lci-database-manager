@@ -12,12 +12,12 @@
 <Toaster />
 
 <nav>
-	<ul class="flex justify-center gap-4 py-4">
-		<Button variant="link" href="/">Home</Button>
+	<ul class="flex justify-center gap-4 py-6">
+		<Button class="text-lg" variant="link" href="/">Home</Button>
 		<Separator orientation="vertical" class="h-8" />
-		<Button variant="link" href="/report">Report</Button>
+		<Button class="text-lg" variant="link" href="/report">Report</Button>
 		<Separator orientation="vertical" class="h-8" />
-		<Button variant="default" href="/database-manager">Database Manager</Button>
+		<Button class="text-lg" variant="secondary" href="/database-manager">Database Manager</Button>
 	</ul>
 </nav>
 

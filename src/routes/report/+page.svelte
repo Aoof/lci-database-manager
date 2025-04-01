@@ -1,7 +1,7 @@
 <script>
-    import { Home } from '$lib/components/home';
+    import { Report } from '$lib/components/report';
 </script>
 
 <article class="size-[60%] mx-auto my-10">
-    <Home />
+    <Report />
 </article>
