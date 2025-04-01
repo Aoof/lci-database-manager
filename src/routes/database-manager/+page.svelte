@@ -2,6 +2,7 @@
 	import { Button } from "$lib/components/ui/button";
     import * as Drawer from "$lib/components/ui/drawer";
 
+    let open = false;
     // TODO: Complete the database manager tests
 </script>
 
@@ -12,9 +13,9 @@
             <p class="text-lg text-gray-300 mb-4">
                 Click on the button to open the tests that will help you evaluate the database manager.
             </p>
-            <Drawer.Root>
-                <Drawer.Trigger>
-                    <Button variant="outline" size="lg" class="cursor-pointer m-auto">
+            <Drawer.Root bind:open>
+                <Drawer.Trigger asChild let:builder>
+                    <Button variant="outline" builders={[builder]} size="lg" class="cursor-pointer m-auto">
                         Open Tests
                     </Button>
                 </Drawer.Trigger>
@@ -33,7 +34,6 @@
                         </Drawer.Close>
                     </Drawer.Header>
                 </Drawer.Content>
-
             </Drawer.Root>
         </part>
         <part class="w-full">
