@@ -10,13 +10,25 @@ export async function GET({ url }) {
 
 	try {
 		const [rows] = await db.query(query, values);
-		return json({ query: query, data: rows }, { status: 200 });
+		return json(
+			{ query: query, data: rows, message: 'Data retrieved successfully' },
+			{ status: 200 }
+		);
 	} catch (error) {
 		console.error('Error executing query:', error);
 		return json({ error: 'Error executing query' }, { status: 500 });
 	}
 }
 
+// type of json it needs to receive
+// {
+//  "table": "users",
+//  "columns": [
+//    { "name": "id", "type": "INT AUTO_INCREMENT PRIMARY KEY" },
+//    { "name": "username", "type": "VARCHAR(255)" },
+//    { "name": "email", "type": "VARCHAR(255)" }
+//  ]
+//}
 export async function POST({ request, url }) {
 	const table = url.searchParams.get('table');
 	if (!table) return json({ error: 'Table name is required' }, { status: 400 });
@@ -26,31 +38,30 @@ export async function POST({ request, url }) {
 		return json({ error: 'Invalid columns structure' }, { status: 400 });
 	}
 
-	if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(table)) {
+	const validIdentifier = /^[a-zA-Z0-9_]+$/;
+	if (!validIdentifier.test(table)) {
 		return json({ error: 'Invalid table name' }, { status: 400 });
 	}
 
-	const columnDefinitions = columns
-		.map(({ name, type }) => {
-			if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) {
-				throw new Error(`Invalid column name: ${name}`);
-			}
-			if (
-				!/^(INT|VARCHAR\(\d+\)|TEXT|BOOLEAN|DATETIME|FLOAT|DOUBLE|DECIMAL\(\d+,\d+\))$/i.test(type)
-			) {
-				throw new Error(`Invalid column type: ${type}`);
-			}
-			return `\`${name}\` ${type}`;
-		})
-		.join(', ');
+	for (const col of columns) {
+		if (!col.name || !validIdentifier.test(col.name)) {
+			return json({ error: 'Invalid column name' }, { status: 400 });
+		}
+		if (!col.type || typeof col.type !== 'string') {
+			return json({ error: 'Invalid column type' }, { status: 400 });
+		}
+	}
 
-	const query = `CREATE TABLE \`${table}\` (${columnDefinitions})`;
+	const columnDefs = columns.map((col) => `\`${col.name}\` ${col.type}`).join(', ');
+
+	const query = `CREATE TABLE \`${table}\` (${columnDefs})`;
 
 	try {
-		await db.query(query);
-		return json({ query: query, message: `Table ${table} created successfully!` }, { status: 200 });
+		const [data] = await db.query(query);
+
+		return json({ query, message: 'Table created successfully', data }, { status: 201 });
 	} catch (error) {
-		console.error(error);
-		return json({ error: error }, { status: 500 });
+		console.error('Error executing query:', error);
+		return json({ error: 'Error executing query: ' + error }, { status: 500 });
 	}
 }
