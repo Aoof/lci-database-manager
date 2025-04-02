@@ -6,6 +6,8 @@
 	import * as Sheet from '$lib/components/ui/sheet';
 	import * as Table from '$lib/components/ui/table';
 	import * as Select from '$lib/components/ui/select';
+	import * as Pagination from '$lib/components/ui/pagination';
+	import { toast } from 'svelte-sonner';
 	import { Input } from '$lib/components/ui/input'; // Added for potential filtering
 	import { CaretDown, CaretUp, CaretSort, Pencil2, Trash } from 'svelte-radix'; // Icons for sorting and actions
 	import { writable } from 'svelte/store';
@@ -13,6 +15,9 @@
 	// --- Reactive State ---
 	// Store the currently selected table name
 	const selectedTableName = writable<string | undefined>(undefined);
+	const pages = writable<number>(0);
+	const currentPage = writable<number>(1);
+
 	// Store sorting configuration
 	const sortConfig = writable<{ key: string; direction: 'asc' | 'desc' | null }>({
 		key: '',
@@ -97,22 +102,22 @@
 		// TODO: Add logic here to fetch and update 'currentTable'
 		// based on the selected table name 'value'.
 		// For now, it won't change the displayed data.
-		console.log('Selected table:', value);
+		toast.success(`Selected table: ${value?.value}`);
 		// Reset sorting when table changes
 		sortConfig.set({ key: '', direction: null });
 	}
 
 	function handleAddTable() {
 		// TODO: Implement logic to open a form/modal for creating a new table
-		console.log('Add Table clicked');
+		toast.info('Add Table clicked');
 	}
 
 	function handleEditTable() {
 		// TODO: Implement logic to open a form/modal for altering the selected table
 		if ($selectedTableName) {
-			console.log('Edit Table clicked for:', $selectedTableName);
+			toast.info(`Edit Table clicked for: ${$selectedTableName}`);
 		} else {
-			console.log('No table selected to edit');
+			toast.error('No table selected to edit');
 			// Optionally show a notification to the user
 		}
 	}
@@ -120,22 +125,22 @@
 	function handleDeleteTable() {
 		// TODO: Implement logic to confirm and delete the selected table
 		if ($selectedTableName) {
-			console.log('Delete Table clicked for:', $selectedTableName);
+			toast.info(`Delete Table clicked for: ${$selectedTableName}`);
 			// Show confirmation dialog
 		} else {
-			console.log('No table selected to delete');
+			toast.error('No table selected to delete');
 			// Optionally show a notification to the user
 		}
 	}
 
 	function handleEditRow(rowId: number) {
 		// TODO: Implement logic to open an edit form for the specific row
-		console.log('Edit row clicked:', rowId);
+		toast.info(`Edit Row clicked for ID: ${rowId}`);
 	}
 
 	function handleDeleteRow(rowId: number) {
 		// TODO: Implement logic to confirm and delete the specific row
-		console.log('Delete row clicked:', rowId);
+		toast.info(`Delete Row clicked for ID: ${rowId}`);
 		// Show confirmation dialog
 	}
 
@@ -217,7 +222,7 @@
 									{#if column.sortable}
 										<Button
 											variant="ghost"
-											class="w-full justify-start px-2"
+											class="w-full justify-start px-2 hover:bg-secondary hover:text-accent-foreground"
 											on:click={() => handleSort(column.key)}
 										>
 											{column.name}
@@ -280,6 +285,29 @@
 						{/each}
 					</Table.Body>
 				</Table.Root>
+				<Pagination.Root class="my-4" count={currentTable.rows.length} perPage={10} let:pages let:currentPage>
+					<Pagination.Content>
+						<Pagination.Item>
+							<Pagination.PrevButton />
+						</Pagination.Item>
+						{#each pages as page (page.key)}
+							{#if page.type == "ellipsis"}
+							<Pagination.Item>
+								<Pagination.Ellipsis />
+							</Pagination.Item>
+							{:else}
+							<Pagination.Item class={(currentPage == page.value) ? "" : "hidden"}>
+								<Pagination.Link {page} isActive={currentPage == page.value}>
+									{page.value}
+								</Pagination.Link>
+							</Pagination.Item>
+							{/if}
+						{/each}
+						<Pagination.Item>
+							<Pagination.NextButton />
+						</Pagination.Item>
+					</Pagination.Content>
+				</Pagination.Root>
 			</div>
 
 			{:else}
