@@ -1,4 +1,7 @@
-import mysql from 'mysql2/promise';
 import { env } from '$env/dynamic/private';
+import { neon } from '@neondatabase/serverless';
 
-export const db = mysql.createPool(env.MYSQL_URL);
+const connectionString : string = env.DATABASE_URL;
+
+const db = neon(connectionString);
+export { db };
