@@ -2,6 +2,7 @@
 	import { Button } from "$lib/components/ui/button";
     import * as Sheet from "$lib/components/ui/sheet";
     import * as Table from "$lib/components/ui/table";
+    import * as Select from "$lib/components/ui/select";
 
     const currentTable = {
         name: "Users",
@@ -47,11 +48,44 @@
         <part class="w-full">
             <h2 class="text-3xl font-bold mb-4">Table:</h2>
 
+            <section class="w-full mb-4 flex flex-row justify-between items-start gap-4">
+                <part class="left flex flex-row gap-2">
+                    <Select.Root>
+                        <Select.Trigger class="w-[180px] cursor-pointer">
+                            <Select.Value placeholder="Select a table" />
+                        </Select.Trigger>
+                        <Select.Content>
+                            {#each ["Users", "Orders", "Products"] as table}
+                                <Select.Item value={table} class="cursor-pointer">
+                                    {table}
+                                </Select.Item>
+                            {/each}
+                        </Select.Content>
+                    </Select.Root>
+                </part>    
+
+                <part class="right flex flex-row gap-2">
+                    <Button variant="secondary" class="cursor-pointer">
+                        Add Table
+                    </Button>
+                    <Button variant="outline" class="cursor-pointer">
+                        Edit Table
+                    </Button>
+                    <Button variant="destructive" class="cursor-pointer">
+                        Delete Table
+                    </Button>
+                </part>
+            </section>
+
             <Table.Root>
                 <Table.Header>
                     <Table.Row>
                         {#each currentTable.columns as column}
-                            <Table.Head>{column.name}</Table.Head>
+                            <Table.Head>
+                                <Button variant="ghost" class="w-full cursor-pointer">
+                                    {column.name}
+                                </Button>
+                            </Table.Head>
                         {/each}
                     </Table.Row>
                 </Table.Header>

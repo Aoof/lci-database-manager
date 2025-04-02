@@ -190,7 +190,7 @@
   ---break---
 */
 .dark {
-  --accent: oklch(0.279 0.041 260.031);
+  --accent: oklch(19.608% 0.00652 17.722);
   --accent-foreground: oklch(0.984 0.003 247.858);
   --background: oklch(19.608% 0.00652 17.722);
   --border: oklch(1 0 0 / 10%);
@@ -206,7 +206,7 @@
   --input: oklch(1 0 0 / 15%);
   --muted: oklch(0.279 0.041 260.031);
   --muted-foreground: oklch(0.704 0.04 256.788);
-  --popover: oklch(0.208 0.042 265.755);
+  --popover: oklch(14.149% 0.00924 18.302);
   --popover-foreground: oklch(0.984 0.003 247.858);
   --primary: oklch(0.929 0.013 255.508);
   --primary-foreground: oklch(0.208 0.042 265.755);
