@@ -7,6 +7,7 @@ The model is based on an online retail system. It includes tables for customers,
 ## 2. Data Definition: Creating Tables and Constraints
 
 ### Table: Customers
+
 ```sql
 CREATE TABLE Customers (
     customer_id INT PRIMARY KEY,
@@ -20,6 +21,7 @@ CREATE TABLE Customers (
 ```
 
 ### Table: Categories
+
 ```sql
 CREATE TABLE Categories (
     category_id INT PRIMARY KEY,
@@ -29,6 +31,7 @@ CREATE TABLE Categories (
 ```
 
 ### Table: Suppliers
+
 ```sql
 CREATE TABLE Suppliers (
     supplier_id INT PRIMARY KEY,
@@ -38,6 +41,7 @@ CREATE TABLE Suppliers (
 ```
 
 ### Table: Products
+
 ```sql
 CREATE TABLE Products (
     product_id INT PRIMARY KEY,
@@ -53,6 +57,7 @@ CREATE TABLE Products (
 ```
 
 ### Table: Orders
+
 ```sql
 CREATE TABLE Orders (
     order_id INT PRIMARY KEY,
@@ -65,6 +70,7 @@ CREATE TABLE Orders (
 ```
 
 ### Table: Order_Details
+
 ```sql
 CREATE TABLE Order_Details (
     order_detail_id INT PRIMARY KEY,
@@ -78,6 +84,7 @@ CREATE TABLE Order_Details (
 ```
 
 ### Table: System_Users
+
 ```sql
 CREATE TABLE System_Users (
     user_id INT PRIMARY KEY,
@@ -87,13 +94,14 @@ CREATE TABLE System_Users (
 );
 ```
 
-*Note: Alter or drop tables later using ALTER TABLE and DROP TABLE commands when needed.*
+_Note: Alter or drop tables later using ALTER TABLE and DROP TABLE commands when needed._
 
 ---
 
 ## 3. Sequences for Auto-Incremented IDs
 
 Sequences allow automatic generation of primary key values.
+
 ```sql
 CREATE SEQUENCE seq_customers START WITH 1000 INCREMENT BY 1;
 CREATE SEQUENCE seq_products START WITH 2000 INCREMENT BY 1;
@@ -102,17 +110,20 @@ CREATE SEQUENCE seq_order_details START WITH 4000 INCREMENT BY 1;
 ```
 
 To use them in INSERT statements, you might call:
+
 ```sql
 INSERT INTO Customers (customer_id, first_name, last_name, email)
 VALUES (NEXTVAL(seq_customers), 'Alice', 'Smith', 'alice.smith@example.com');
 ```
 
 And you can check current sequence values with CURRVAL:
+
 ```sql
 SELECT CURRVAL(seq_customers) FROM dual;
 ```
 
-*Alter a sequence if needed:*
+_Alter a sequence if needed:_
+
 ```sql
 ALTER SEQUENCE seq_customers INCREMENT BY 2;
 ```
@@ -122,6 +133,7 @@ ALTER SEQUENCE seq_customers INCREMENT BY 2;
 ## 4. Data Manipulation: INSERT, UPDATE, DELETE
 
 ### INSERT Examples
+
 ```sql
 -- Insert a new product.
 INSERT INTO Products (product_id, product_name, category_id, supplier_id, price, stock_quantity)
@@ -129,6 +141,7 @@ VALUES (NEXTVAL(seq_products), 'Wireless Mouse', 1, 101, 29.99, 150);
 ```
 
 ### UPDATE Examples
+
 ```sql
 -- Update stock quantity after new inventory arrival.
 UPDATE Products
@@ -137,6 +150,7 @@ WHERE product_id = 2001;
 ```
 
 ### DELETE Examples
+
 ```sql
 -- Delete an order that was cancelled.
 DELETE FROM Orders
@@ -148,6 +162,7 @@ WHERE order_id = 3005 AND status = 'Cancelled';
 ## 5. Data Retrieval: SELECT, GROUP BY, HAVING, and JOIN
 
 ### Basic SELECT with String Functions
+
 ```sql
 SELECT UPPER(first_name) AS first_name, INITCAP(last_name) AS last_name,
        SUBSTR(email, 1, 10) AS email_prefix
@@ -156,6 +171,7 @@ WHERE email LIKE '%@example.com';
 ```
 
 ### SELECT with JOIN, GROUP BY, HAVING, and Aggregate Functions
+
 ```sql
 SELECT c.customer_id, CONCAT(c.first_name, ' ', c.last_name) AS customer_name,
        COUNT(o.order_id) AS order_count,
@@ -168,6 +184,7 @@ ORDER BY total_spent DESC;
 ```
 
 ### Using Mathematical and Date Functions
+
 ```sql
 SELECT order_id, total,
        ROUND(POWER(total, 1/2.0), 2) AS square_root_total,
@@ -177,13 +194,14 @@ FROM Orders
 WHERE order_date >= LAST_DAY(ADD_MONTHS(SYSDATE, -1)) + 1;
 ```
 
-*Other functions like MOD, ABS, CEIL, FLOOR, and INTERVAL can be integrated as needed in similar queries.*
+_Other functions like MOD, ABS, CEIL, FLOOR, and INTERVAL can be integrated as needed in similar queries._
 
 ---
 
 ## 6. Views: Creating and Managing Virtual Tables
 
 ### Creating a Simple View
+
 ```sql
 CREATE VIEW Order_Summary AS
 SELECT o.order_id, c.first_name || ' ' || c.last_name AS customer_name,
@@ -193,6 +211,7 @@ JOIN Customers c ON o.customer_id = c.customer_id;
 ```
 
 ### Creating or Replacing a View with Additional Options
+
 ```sql
 CREATE OR REPLACE VIEW Product_Inventory
 AS
@@ -205,7 +224,7 @@ WITH READ ONLY
 WITH CHECK OPTION;
 ```
 
-*Force view creation can be applied in some database systems if needed.*
+_Force view creation can be applied in some database systems if needed._
 
 ---
 
@@ -239,6 +258,7 @@ COMMIT;
 Database administrators might need to manage users and their privileges.
 
 ### Create a New User and Grant Privileges
+
 ```sql
 CREATE USER retail_manager IDENTIFIED BY 'securePassword123';
 GRANT SELECT, INSERT, UPDATE, DELETE ON Customers TO retail_manager;
@@ -246,6 +266,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON Orders TO retail_manager;
 ```
 
 ### Alter and Drop User
+
 ```sql
 ALTER USER retail_manager IDENTIFIED BY 'newSecurePassword456';
 
@@ -257,6 +278,7 @@ DROP USER retail_manager;
 ## 9. Miscellaneous Commands and Functions
 
 ### Additional String Functions
+
 ```sql
 SELECT REPLACE(product_name, 'Wireless', 'Cordless') AS new_product_name,
        LPAD(product_name, 20, '*') AS padded_name,
@@ -266,6 +288,7 @@ FROM Products;
 ```
 
 ### Additional Mathematical Functions
+
 ```sql
 SELECT product_id, price,
        MOD(price, 5) AS remainder,
@@ -276,6 +299,7 @@ FROM Products;
 ```
 
 ### Additional Date Functions
+
 ```sql
 SELECT order_id, order_date,
        MONTHS_BETWEEN(SYSDATE, order_date) AS months_since_order,
@@ -284,6 +308,7 @@ FROM Orders;
 ```
 
 ### Miscellaneous Operators and Aggregates
+
 ```sql
 SELECT COUNT(*) AS total_customers,
        MAX(total) AS highest_order,
@@ -294,6 +319,7 @@ WHERE total IS NOT NULL;
 ```
 
 ### Using NVL and NVL2
+
 ```sql
 SELECT customer_id,
        NVL(phone, 'No Phone Provided') AS phone_info,
@@ -301,7 +327,8 @@ SELECT customer_id,
 FROM Customers;
 ```
 
-### Spooling (Output to a File) – Example in SQL*Plus
+### Spooling (Output to a File) – Example in SQL\*Plus
+
 ```sql
 SPOOL order_report.txt
 
@@ -319,3 +346,4 @@ SPOOL OFF
 This extensive database model demonstrates how to logically incorporate every listed SQL command and function into one cohesive system. The model supports data definition, manipulation, retrieval, and management while providing examples for constraints, transactions, sequences, views, string and date functions, and more. This structure not only meets administrative needs (user management and sequence control) but also supports robust reporting and data analysis through views and advanced queries.
 
 This design can serve as a template for a real-world system and can be extended or modified to fit specific business requirements.
+
