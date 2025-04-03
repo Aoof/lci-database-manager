@@ -1,22 +1,18 @@
 import { json } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
+import { sql } from '$lib/server/db';
 
 export async function GET({ url }) {
 	const table = url.searchParams.get('table');
 	if (!table) return json({ error: 'Table name is required' }, { status: 400 });
 
-	const query = 'SELECT * FROM ?';
-	const values = [table];
+	const query = `SELECT * FROM ${table};`;
 
 	try {
-		const [rows] = await db.query(query, values);
-		return json(
-			{ query: query, data: rows, message: 'Data retrieved successfully' },
-			{ status: 200 }
-		);
+		const rows = await sql`${query}`;
+		return json({ query, data: rows, message: 'Data retrieved successfully' }, { status: 200 });
 	} catch (error) {
 		console.error('Error executing query:', error);
-		return json({ error: 'Error executing query' }, { status: 500 });
+		return json({ error: 'Error executing query', details: error }, { status: 500 });
 	}
 }
 
@@ -57,7 +53,7 @@ export async function POST({ request, url }) {
 	const query = `CREATE TABLE \`${table}\` (${columnDefs})`;
 
 	try {
-		const [data] = await db.query(query);
+		const [data] = await sql.query(query);
 
 		return json({ query, message: 'Table created successfully', data }, { status: 201 });
 	} catch (error) {
