@@ -1,14 +1,20 @@
 import { json } from '@sveltejs/kit';
 import { sql } from '$lib/server/db';
+import { isValidIdentifier } from '$lib/utils/db';
+import type { CreateTablePayload, UpdateTablePayload } from '$lib/types/db';
 
 export async function GET({ url }) {
 	const table = url.searchParams.get('table');
 	if (!table) return json({ error: 'Table name is required' }, { status: 400 });
 
-	const query = `SELECT * FROM ${table};`;
+	if (!isValidIdentifier(table)) {
+		return json({ error: 'Invalid table name' }, { status: 400 });
+	}
+
+	const query = `SELECT * FROM "${table}";`;
 
 	try {
-		const rows = await sql`${query}`;
+		const rows = await sql.query(query);
 		return json({ query, data: rows, message: 'Data retrieved successfully' }, { status: 200 });
 	} catch (error) {
 		console.error('Error executing query:', error);
@@ -16,31 +22,21 @@ export async function GET({ url }) {
 	}
 }
 
-// type of json it needs to receive
-// {
-//  "table": "users",
-//  "columns": [
-//    { "name": "id", "type": "INT AUTO_INCREMENT PRIMARY KEY" },
-//    { "name": "username", "type": "VARCHAR(255)" },
-//    { "name": "email", "type": "VARCHAR(255)" }
-//  ]
-//}
 export async function POST({ request, url }) {
 	const table = url.searchParams.get('table');
 	if (!table) return json({ error: 'Table name is required' }, { status: 400 });
 
-	const { columns } = await request.json();
+	if (!isValidIdentifier(table)) {
+		return json({ error: 'Invalid table name' }, { status: 400 });
+	}
+
+	const { columns }: CreateTablePayload = await request.json();
 	if (!Array.isArray(columns) || columns.length === 0) {
 		return json({ error: 'Invalid columns structure' }, { status: 400 });
 	}
 
-	const validIdentifier = /^[a-zA-Z0-9_]+$/;
-	if (!validIdentifier.test(table)) {
-		return json({ error: 'Invalid table name' }, { status: 400 });
-	}
-
 	for (const col of columns) {
-		if (!col.name || !validIdentifier.test(col.name)) {
+		if (!col.name || !isValidIdentifier(col.name)) {
 			return json({ error: 'Invalid column name' }, { status: 400 });
 		}
 		if (!col.type || typeof col.type !== 'string') {
@@ -48,15 +44,84 @@ export async function POST({ request, url }) {
 		}
 	}
 
-	const columnDefs = columns.map((col) => `\`${col.name}\` ${col.type}`).join(', ');
+	const columnDefs = columns.map((col) => `"${col.name}" ${col.type}`).join(', ');
 
-	const query = `CREATE TABLE \`${table}\` (${columnDefs})`;
+	const query = `CREATE TABLE "${table}" (${columnDefs})`;
 
 	try {
-		const [data] = await sql.query(query);
+		await sql.query(query);
 
-		return json({ query, message: 'Table created successfully', data }, { status: 201 });
+		return json({ query, message: 'Table created successfully' }, { status: 201 });
 	} catch (error) {
+		console.error('Query: ', query);
+		console.error('Error executing query:', error);
+		return json({ error: 'Error executing query: ' + error }, { status: 500 });
+	}
+}
+
+export async function PUT({ request, url }) {
+	const table = url.searchParams.get('table');
+	if (!table) return json({ error: 'Table name is required' }, { status: 400 });
+	if (!isValidIdentifier(table)) {
+		return json({ error: 'Invalid table name' }, { status: 400 });
+	}
+
+	const { changes }: UpdateTablePayload = await request.json();
+	if (!Array.isArray(changes) || changes.length === 0) {
+		return json({ error: 'Invalid changes structure' }, { status: 400 });
+	}
+
+	for (const change of changes) {
+		if (!change.action || !['ADD', 'DROP', 'MODIFY'].includes(change.action)) {
+			return json({ error: 'Invalid action in changes' }, { status: 400 });
+		}
+		if (!change.column || !isValidIdentifier(change.column)) {
+			return json({ error: 'Invalid column name in changes' }, { status: 400 });
+		}
+		if (change.action !== 'DROP' && (!change.type || typeof change.type !== 'string')) {
+			return json({ error: 'Invalid column type in changes' }, { status: 400 });
+		}
+	}
+
+	const query = changes
+		.map((change) => {
+			if (change.action === 'ADD') {
+				return `ALTER TABLE "${table}" ADD COLUMN "${change.column}" ${change.type}`;
+			} else if (change.action === 'DROP') {
+				return `ALTER TABLE "${table}" DROP COLUMN "${change.column}"`;
+			} else if (change.action === 'MODIFY') {
+				return `ALTER TABLE "${table}" ALTER COLUMN "${change.column}" TYPE ${change.type}`;
+			}
+		})
+		.join('; ');
+
+	try {
+		await sql.query(query);
+
+		return json({ query, message: 'Table updated successfully' }, { status: 200 });
+	} catch (error) {
+		console.error('query: ', query);
+		console.error('Error executing query:', error);
+		return json({ error: 'Error executing query: ' + error }, { status: 500 });
+	}
+}
+
+export async function DELETE({ url }) {
+	const table = url.searchParams.get('table');
+	if (!table) return json({ error: 'Table name is required' }, { status: 400 });
+
+	if (!isValidIdentifier(table)) {
+		return json({ error: 'Invalid table name' }, { status: 400 });
+	}
+
+	const query = `DROP TABLE "${table}"`;
+
+	try {
+		await sql.query(query);
+
+		return json({ query, message: 'Table deleted successfully' }, { status: 200 });
+	} catch (error) {
+		console.error('Query: ', query);
 		console.error('Error executing query:', error);
 		return json({ error: 'Error executing query: ' + error }, { status: 500 });
 	}
