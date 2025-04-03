@@ -1,20 +1,20 @@
 import { json } from '@sveltejs/kit';
-import { sql } from '$lib/server/db';
+import { db } from '$lib/server/db';
 import { isValidIdentifier } from '$lib/utils/db';
+import format from 'pg-format';
 import type { CreateTablePayload, UpdateTablePayload } from '$lib/types/db';
 
 export async function GET({ url }) {
 	const table = url.searchParams.get('table');
 	if (!table) return json({ error: 'Table name is required' }, { status: 400 });
-
 	if (!isValidIdentifier(table)) {
 		return json({ error: 'Invalid table name' }, { status: 400 });
 	}
 
-	const query = `SELECT * FROM "${table}";`;
+	const query = format('SELECT * FROM %I;', table);
 
 	try {
-		const rows = await sql.query(query);
+		const rows = await db.query(query);
 		return json({ query, data: rows, message: 'Data retrieved successfully' }, { status: 200 });
 	} catch (error) {
 		console.error('Error executing query:', error);
@@ -44,12 +44,12 @@ export async function POST({ request, url }) {
 		}
 	}
 
-	const columnDefs = columns.map((col) => `"${col.name}" ${col.type}`).join(', ');
+	const columnDefs = columns.map((col) => format('%I %s', col.name, col.type)).join(', ');
 
-	const query = `CREATE TABLE "${table}" (${columnDefs})`;
+	const query = format('CREATE TABLE %I (%s)', table, columnDefs);
 
 	try {
-		await sql.query(query);
+		await db.query(query);
 
 		return json({ query, message: 'Table created successfully' }, { status: 201 });
 	} catch (error) {
@@ -86,17 +86,17 @@ export async function PUT({ request, url }) {
 	const query = changes
 		.map((change) => {
 			if (change.action === 'ADD') {
-				return `ALTER TABLE "${table}" ADD COLUMN "${change.column}" ${change.type}`;
+				return format('ALTER TABLE %I ADD COLUMN %I %s', table, change.column, change.type);
 			} else if (change.action === 'DROP') {
-				return `ALTER TABLE "${table}" DROP COLUMN "${change.column}"`;
+				return format('ALTER TABLE %I DROP COLUMN %I', table, change.column);
 			} else if (change.action === 'MODIFY') {
-				return `ALTER TABLE "${table}" ALTER COLUMN "${change.column}" TYPE ${change.type}`;
+				return format('ALTER TABLE %I ALTER COLUMN %I TYPE %s', table, change.column, change.type);
 			}
 		})
 		.join('; ');
 
 	try {
-		await sql.query(query);
+		await db.query(query);
 
 		return json({ query, message: 'Table updated successfully' }, { status: 200 });
 	} catch (error) {
@@ -114,10 +114,10 @@ export async function DELETE({ url }) {
 		return json({ error: 'Invalid table name' }, { status: 400 });
 	}
 
-	const query = `DROP TABLE "${table}"`;
+	const query = format('DROP TABLE %I', table);
 
 	try {
-		await sql.query(query);
+		await db.query(query);
 
 		return json({ query, message: 'Table deleted successfully' }, { status: 200 });
 	} catch (error) {

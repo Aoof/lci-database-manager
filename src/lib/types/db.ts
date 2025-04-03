@@ -24,3 +24,13 @@ export interface InsertRowPayload {
 export interface UpdateRowPayload {
 	values: Record<string, any>; // Key-value pairs of column names and their new values
 }
+
+export interface TableFilterPayload {
+	filters?: Record<string, string | number>; // Key-value pairs for filtering
+	sort?: {
+		column: string; // Column name to sort by
+		direction?: 'ASC' | 'DESC'; // Sort direction (default to ASC if not provided)
+	};
+	limit?: number; // Max number of records to return
+	offset?: number; // Number of records to skip
+}

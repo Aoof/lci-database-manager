@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
-import { sql } from '$lib/server/db';
+import { db } from '$lib/server/db';
 import { isValidIdentifier } from '$lib/utils/db';
+import format from 'pg-format';
 import type { InsertRowPayload, UpdateRowPayload } from '$lib/types/db';
 
 export async function GET({ url }) {
@@ -15,10 +16,10 @@ export async function GET({ url }) {
 		return json({ error: 'Invalid or missing row id' }, { status: 400 });
 	}
 
-	const query = `SELECT * FROM "${tableName}" WHERE id = ${id}`;
+	const query = format('SELECT * FROM %I WHERE id = %L', tableName, id);
 
 	try {
-		const rows = await sql.query(query);
+		const rows = await db.query(query);
 		return json({ query, data: rows, message: 'Row retrieved successfully!' }, { status: 200 });
 	} catch (error) {
 		console.error('Error executing query:', error);
@@ -38,13 +39,10 @@ export async function POST({ url, request }) {
 		return json({ error: 'Invalid values structure' }, { status: 400 });
 	}
 
-	const formattedValues = values
-		.map((value) => (typeof value === 'string' ? `'${value}'` : value))
-		.join(', ');
-	const query = `INSERT INTO "${tableName}" VALUES (${formattedValues})`;
+	const query = format('INSERT INTO %I VALUES (%L)', tableName, values);
 
 	try {
-		await sql.query(query);
+		await db.query(query);
 		return json({ query, message: 'Row inserted successfully!' }, { status: 201 });
 	} catch (error) {
 		console.error('Error executing query:', error);
@@ -74,14 +72,14 @@ export async function PUT({ url, request }) {
 			if (!isValidIdentifier(key)) {
 				throw new Error(`Invalid column name: ${key}`);
 			}
-			return `"${key}" = ${typeof value === 'string' ? `'${value}'` : value}`;
+			return format('%I = %L', key, value);
 		})
 		.join(', ');
 
-	const query = `UPDATE "${tableName}" SET ${setClause} WHERE id = ${id}`;
+	const query = format('UPDATE %I SET %s WHERE id = %L', tableName, setClause, id);
 
 	try {
-		await sql.query(query);
+		await db.query(query);
 		return json({ query, message: 'Row updated successfully!' }, { status: 200 });
 	} catch (error) {
 		console.error('Error executing query:', error);
@@ -101,10 +99,10 @@ export async function DELETE({ url }) {
 		return json({ error: 'Invalid or missing row id' }, { status: 400 });
 	}
 
-	const query = `DELETE FROM "${tableName}" WHERE id = ${id}`;
+	const query = format('DELETE FROM %I WHERE id = %L', tableName, id);
 
 	try {
-		await sql.query(query);
+		await db.query(query);
 		return json({ query, message: 'Row deleted successfully!' }, { status: 200 });
 	} catch (error) {
 		console.error('Error executing query:', error);
