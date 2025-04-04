@@ -29,8 +29,19 @@ export interface TableFilterPayload {
 	filters?: Record<string, string | number>; // Key-value pairs for filtering
 	sort?: {
 		column: string; // Column name to sort by
-		direction?: 'ASC' | 'DESC'; // Sort direction (default to ASC if not provided)
+		direction: 'ASC' | 'DESC'; // Sort direction
 	};
 	limit?: number; // Max number of records to return
 	offset?: number; // Number of records to skip
+}
+
+export type Constraint =
+	| { type: 'PRIMARY_KEY'; column: string }
+	| { type: 'FOREIGN_KEY'; columns: string[]; foreignTable: string; foreignColumns: string[] }
+	| { type: 'NOT_NULL'; columns: string[] }
+	| { type: 'CHECK'; checkString: string }
+	| { type: 'UNIQUE'; column: string };
+
+export interface ConstraintPayload {
+	constraints: Constraint[]; // Array of constraints to be applied to the table
 }
