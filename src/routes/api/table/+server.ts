@@ -11,6 +11,20 @@ export async function GET({ url }) {
 		return json({ error: 'Invalid table name' }, { status: 400 });
 	}
 
+	if (table === 'all') {
+		const query = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'";
+		try {
+			const tables = await db.query(query);
+			return json(
+				{ query, data: tables, message: 'Tables retrieved successfully' },
+				{ status: 200 }
+			);
+		} catch (error) {
+			console.error('Error executing query:', error);
+			return json({ error: 'Error executing query', details: error }, { status: 500 });
+		}
+	}
+
 	const query = format('SELECT * FROM %I;', table);
 
 	try {
