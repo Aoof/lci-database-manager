@@ -199,9 +199,13 @@
 
 			<div class="flex flex-wrap gap-2">
 				<TableDialog />
-				<Button variant="outline" on:click={handleEditTable} disabled={!$selectedTableName}>
-					Edit Table
-				</Button>
+				{#if currentTable}
+					<TableDialog tableName={currentTable.name} columns={currentTable.columns} retainTable />
+				{:else}
+					<Button variant="outline" on:click={handleEditTable} disabled={!$selectedTableName}>
+						Edit Table
+					</Button>
+				{/if}
 				<Button variant="destructive" on:click={handleDeleteTable} disabled={!$selectedTableName}>
 					Delete Table
 				</Button>

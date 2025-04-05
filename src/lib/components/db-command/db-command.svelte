@@ -5,7 +5,7 @@
 	import Button from "../ui/button/button.svelte";
     import { toast } from "svelte-sonner";
 
-    export let code : string;
+    export let code : string = "";
     export let language : string = "sql";
     export let title : string = "Code Snippet";
 

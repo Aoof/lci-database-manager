@@ -52,6 +52,7 @@
 		"@neondatabase/serverless": "^1.0.0",
 		"@tailwindcss/postcss": "^4.0.17",
 		"@tailwindcss/typography": "^0.5.16",
+		"axios": "^1.8.4",
 		"class-variance-authority": "^0.7.1",
 		"highlight.js": "^11.11.1",
 		"lucide-react": "^0.485.0",
