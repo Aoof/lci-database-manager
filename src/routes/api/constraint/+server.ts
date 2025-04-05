@@ -4,6 +4,28 @@ import { isValidIdentifier } from '$lib/utils/db';
 import format from 'pg-format';
 import type { ConstraintPayload } from '$lib/types/db';
 
+export async function GET({ url }) {
+	const table = url.searchParams.get('table');
+	if (!table) return json({ error: 'Table name is required' }, { status: 400 });
+	if (!isValidIdentifier(table)) return json({ error: 'Invalid table name' }, { status: 400 });
+
+	const query = format(
+		'SELECT * FROM information_schema.table_constraints WHERE table_name=%L;',
+		table
+	);
+
+	try {
+		const constraints = await db.query(query);
+		return json(
+			{ query, data: constraints, message: 'Constraints retrieved successfully' },
+			{ status: 200 }
+		);
+	} catch (error) {
+		console.error('Error executing query:', error);
+		return json({ error: 'Error executing query' }, { status: 500 });
+	}
+}
+
 export async function POST({ request, url }) {
 	const table = url.searchParams.get('table');
 	if (!table) return json({ error: 'Table name is required' }, { status: 400 });
