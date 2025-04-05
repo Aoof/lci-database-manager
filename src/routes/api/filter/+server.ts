@@ -1,8 +1,8 @@
-import { json } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { isValidIdentifier } from '$lib/utils/db';
-import format from 'pg-format';
 import type { TableFilterPayload } from '$lib/types/db';
+import { isValidIdentifier } from '$lib/utils/db';
+import { json } from '@sveltejs/kit';
+import format from 'pg-format';
 
 export async function POST({ request, url }) {
 	const table = url.searchParams.get('table');
@@ -15,8 +15,40 @@ export async function POST({ request, url }) {
 
 	// Build the WHERE clause by iterating over the filters object
 	const conditions: string[] = [];
-	for (const key in filters) {
-		conditions.push(format('%I = %L', key, filters[key]));
+
+	if (filters && filters.length > 0) {
+		for (const filter of filters) {
+			switch (filter.type) {
+				case '=':
+				case '!=':
+				case '<':
+				case '<=':
+				case '>':
+				case '>=':
+					conditions.push(format('%I %s %L', filter.column, filter.type, filter.value));
+					break;
+
+				case 'IN':
+				case 'NOT IN':
+					conditions.push(format('%I %s (%L)', filter.column, filter.type, filter.value));
+					break;
+
+				case 'BETWEEN':
+					conditions.push(
+						format('%I BETWEEN %L AND %L', filter.column, filter.value[0], filter.value[1])
+					);
+					break;
+
+				case 'IS NULL':
+				case 'IS NOT NULL':
+					conditions.push(format('%I %s', filter.column, filter.type));
+					break;
+
+				case 'ILIKE':
+					conditions.push(format('%I ILIKE %L', filter.column, filter.value));
+					break;
+			}
+		}
 	}
 	const whereClause = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
 

@@ -1,13 +1,13 @@
-import { json } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { isValidIdentifier } from '$lib/utils/db';
-import format from 'pg-format';
 import type { InsertRowPayload, UpdateRowPayload } from '$lib/types/db';
+import { isValidIdentifier } from '$lib/utils/db';
+import { json } from '@sveltejs/kit';
+import format from 'pg-format';
 
 export async function GET({ url }) {
-	const tableName = url.searchParams.get('table');
-	if (!tableName) return json({ error: 'Table Name is required!' }, { status: 400 });
-	if (!isValidIdentifier(tableName)) {
+	const table = url.searchParams.get('table');
+	if (!table) return json({ error: 'Table Name is required!' }, { status: 400 });
+	if (!isValidIdentifier(table)) {
 		return json({ error: 'Invalid table name' }, { status: 400 });
 	}
 
@@ -16,7 +16,7 @@ export async function GET({ url }) {
 		return json({ error: 'Invalid or missing row id' }, { status: 400 });
 	}
 
-	const query = format('SELECT * FROM %I WHERE id = %L', tableName, id);
+	const query = format('SELECT * FROM %I WHERE id = %L', table, id);
 
 	try {
 		const rows = await db.query(query);
@@ -28,18 +28,25 @@ export async function GET({ url }) {
 }
 
 export async function POST({ url, request }) {
-	const tableName = url.searchParams.get('table');
-	if (!tableName) return json({ error: 'Table Name is required!' }, { status: 400 });
-	if (!isValidIdentifier(tableName)) {
+	const table = url.searchParams.get('table');
+	if (!table) return json({ error: 'Table Name is required!' }, { status: 400 });
+	if (!isValidIdentifier(table)) {
 		return json({ error: 'Invalid table name' }, { status: 400 });
 	}
 
 	const { values }: InsertRowPayload = await request.json();
-	if (!Array.isArray(values) || values.length === 0) {
+	if (!values || typeof values !== 'object' || Object.keys(values).length === 0) {
 		return json({ error: 'Invalid values structure' }, { status: 400 });
 	}
 
-	const query = format('INSERT INTO %I VALUES (%L)', tableName, values);
+	const query = format(
+		'INSERT INTO %I (%s) VALUES (%L)',
+		table,
+		Object.keys(values)
+			.map((col) => format.ident(col))
+			.join(', '),
+		Object.values(values)
+	);
 
 	try {
 		await db.query(query);

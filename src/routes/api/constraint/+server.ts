@@ -1,8 +1,8 @@
-import { json } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { isValidIdentifier } from '$lib/utils/db';
-import format from 'pg-format';
 import type { ConstraintPayload } from '$lib/types/db';
+import { isValidIdentifier } from '$lib/utils/db';
+import { json } from '@sveltejs/kit';
+import format from 'pg-format';
 
 export async function GET({ url }) {
 	const table = url.searchParams.get('table');
