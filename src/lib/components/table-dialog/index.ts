@@ -1,0 +1,1 @@
+export { default as TableDialog } from "./table-dialog.svelte";

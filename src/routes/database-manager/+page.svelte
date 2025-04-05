@@ -2,13 +2,16 @@
 	import type { Selected } from 'bits-ui';
 	
 	// Import necessary Svelte and shadcn-svelte components
+	import { TableDialog } from '$lib/components/table-dialog';
 	import { Button } from '$lib/components/ui/button';
 	import * as Sheet from '$lib/components/ui/sheet';
 	import * as Table from '$lib/components/ui/table';
 	import * as Select from '$lib/components/ui/select';
 	import * as Pagination from '$lib/components/ui/pagination';
+	import * as Dialog from '$lib/components/ui/dialog';
 	import { toast } from 'svelte-sonner';
 	import { Input } from '$lib/components/ui/input'; // Added for potential filtering
+	import { Label } from '$lib/components/ui/label';
 	import { CaretDown, CaretUp, CaretSort, Pencil2, Trash } from 'svelte-radix'; // Icons for sorting and actions
 	import { writable } from 'svelte/store';
 
@@ -108,8 +111,7 @@
 	}
 
 	function handleAddTable() {
-		// TODO: Implement logic to open a form/modal for creating a new table
-		toast.info('Add Table clicked');
+
 	}
 
 	function handleEditTable() {
@@ -196,7 +198,7 @@
 			</div>
 
 			<div class="flex flex-wrap gap-2">
-				<Button variant="secondary" on:click={handleAddTable}>Add Table</Button>
+				<TableDialog />
 				<Button variant="outline" on:click={handleEditTable} disabled={!$selectedTableName}>
 					Edit Table
 				</Button>
