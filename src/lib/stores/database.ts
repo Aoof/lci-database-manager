@@ -1,128 +1,131 @@
 import { writable } from 'svelte/store';
+import type { Column } from '$lib/types';
 import { toast } from 'svelte-sonner';
 import { DbCommand } from '$lib/components/db-command';
-import axios from 'axios';
 
-export const sqlQuery = writable('');
+// Loading state store
+export const isLoading = writable<boolean>(false);
 
-export const sqlResult = writable({
-  columns: [],
-  rows: [],
-  error: null,
-  loading: false,
-  message: '',
-});
-
-// Tables store
-export const tables = writable<Array<{ name: string; columns: Array<{ name: string; type: string }> }>>([]);
-
-// Loading state
-export const isLoading = writable(false);
-
-// Last executed query for display purposes
-export const lastQuery = writable('');
-
-// Database operations
+// Database operations for table management
 export const databaseOperations = {
-  // Create a new table
-  async createTable(tableName: string, columns: Array<{ name: string; type: string }>) {
-    isLoading.set(true);
-    
-    try {
-      const { data } = await axios.post('/?/api/tables', {
-        name: tableName,
-        columns
-      });
+    // Create a new table
+    async createTable(tableName: string, columns: Array<{ name: string; type: string }>) {
+        isLoading.set(true);
+        try {
+            const response = await fetch(`/api/table?table=${tableName}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ columns })
+            });
 
-      // Update tables store
-      tables.update(current => [...current, { name: tableName, columns }]);
+            const result = await response.json();
+            isLoading.set(false);
+            
+            if (response.ok) {
+                // Show the SQL query using the DbCommand component
+                if (result.query) {
+                    toast(DbCommand, {
+                        duration: 5000,
+                        componentProps: {
+                            code: result.query,
+                            title: 'SQL Query',
+                            language:'sql'
+                        }
+                    })
+                }
+                return { success: true, message: result.message };
+            } else {
+                return { success: false, message: result.error || 'Failed to create table' };
+            }
+        } catch (error) {
+            isLoading.set(false);
+            console.error('Error creating table:', error);
+            return { success: false, message: 'An error occurred while creating the table' };
+        }
+    },
 
-      // Store the SQL query for display
-      if (data.query) {
-        lastQuery.set(data.query);
+    // Update an existing table
+    async updateTable(tableName: string, columns: Array<{ name: string; type: string }>) {
+        isLoading.set(true);
+        try {
+            // Convert columns to the format expected by the API
+            const existingColumnsResponse = await fetch(`/api/table?table=${tableName}`);
+            const existingColumnsData = await existingColumnsResponse.json();
+            
+            if (!existingColumnsResponse.ok) {
+                isLoading.set(false);
+                return { success: false, message: 'Failed to fetch existing columns' };
+            }
+            
+            // Get existing column names from the first row of data
+            const existingColumns = existingColumnsData.data.length > 0 
+                ? Object.keys(existingColumnsData.data[0]).filter(col => col !== 'id')
+                : [];
+            
+            // Determine changes to make
+            const changes = [];
+            
+            // Add new columns
+            for (const column of columns) {
+                if (!existingColumns.includes(column.name)) {
+                    changes.push({
+                        action: 'ADD',
+                        column: column.name,
+                        type: column.type
+                    });
+                }
+            }
+            
+            // Drop columns that no longer exist
+            for (const existingCol of existingColumns) {
+                if (!columns.some(col => col.name === existingCol)) {
+                    changes.push({
+                        action: 'DROP',
+                        column: existingCol
+                    });
+                }
+            }
+            
+            // If no changes, return success
+            if (changes.length === 0) {
+                isLoading.set(false);
+                return { success: true, message: 'No changes needed' };
+            }
+            
+            // Send update request
+            const response = await fetch(`/api/table?table=${tableName}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ changes })
+            });
 
-        // Show SQL command in toast
-        toast.custom(DbCommand, { 
-          componentProps: {
-            code: data.query,
-            title: 'Table Created'
-          }, 
-          duration: 5000 
-        });
-      }
-
-      return { success: true };
-    } catch (error) {
-      toast.error(axios.isAxiosError(error) 
-        ? error.response?.data?.message || 'Failed to create table' 
-        : 'Failed to create table'
-      );
-      return { success: false, error };
-    } finally {
-      isLoading.set(false);
+            const result = await response.json();
+            isLoading.set(false);
+            
+            if (response.ok) {
+                // Show the SQL query using the DbCommand component
+                if (result.query) {
+                    toast(DbCommand, {
+                        duration: 5000,
+                        componentProps: {
+                            code: result.query,
+                            title: 'SQL Query',
+                            language:'sql'
+                        } 
+                    })
+                }
+                return { success: true, message: result.message };
+            } else {
+                return { success: false, message: result.error || 'Failed to update table' };
+            }
+        } catch (error) {
+            isLoading.set(false);
+            console.error('Error updating table:', error);
+            return { success: false, message: 'An error occurred while updating the table' };
+        }
     }
-  },
-
-  // Update an existing table
-  async updateTable(tableName: string, columns: Array<{ name: string; type: string }>) {
-    isLoading.set(true);
-
-    try {
-      const { data } = await axios.put(`/?/api/tables/${tableName}`, {
-        columns
-      });
-
-      // Update tables store
-      tables.update(current => 
-        current.map(table => 
-          table.name === tableName 
-            ? { name: tableName, columns } 
-            : table
-        )
-      );
-
-      // Store the SQL query for display
-      if (data.query) {
-        lastQuery.set(data.query);
-
-        // Show SQL command in toast
-        toast.custom(DbCommand, { 
-          componentProps: {
-            code: data.query,
-            title: 'Table Modified'
-          }, 
-          duration: 5000 
-        });
-      }
-
-      return { success: true };
-    } catch (error) {
-      toast.error(axios.isAxiosError(error) 
-        ? error.response?.data?.message || 'Failed to update table' 
-        : 'Failed to update table'
-      );
-      return { success: false, error };
-    } finally {
-      isLoading.set(false);
-    }
-  },
-
-  // Load all tables
-  async loadTables() {
-    isLoading.set(true);
-
-    try {
-      const { data } = await axios.get('/?/api/tables');
-      tables.set(data);
-      return data;
-    } catch (error) {
-      toast.error(axios.isAxiosError(error) 
-        ? error.response?.data?.message || 'Failed to load tables' 
-        : 'Failed to load tables'
-      );
-      return [];
-    } finally {
-      isLoading.set(false);
-    }
-  }
 };

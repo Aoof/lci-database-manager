@@ -8,33 +8,51 @@
 	import { PlusCircled, Trash } from 'svelte-radix';
 	import type { Selected } from 'bits-ui';
 	import { databaseOperations, isLoading } from '$lib/stores/database';
+	import { databaseStore } from '$lib/stores/databaseStore';
+	import { tableStore, tableActions } from '$lib/stores/tableStore';
 	import { onMount } from 'svelte';
 
 	export let tableName: string = '';
 	export let columns: Array<{ name: string; type: string }> = [];
 
+	// This is now just a callback for component users that need to know when a table is added/updated
+	// The actual implementation uses the store system directly
 	export let onAddTable: (
 		name: string,
 		columns: Array<{ name: string; type: string }>
 	) => void = () => {};
 
+	// Reset component state when dialog is closed
 	export let onClose: () => void = () => { 
-		columns = [];
-		tableName = '';
-		_selectedColumnType = { value: '' }; 
+		resetState();
 	};
 
 	export let isOpen: boolean = false;
 	export let editTable: boolean = false;
+
+	// Function to reset the component state
+	function resetState() {
+		columns = [];
+		tableName = '';
+		columnName = '';
+		_selectedColumnType = { value: '' };
+		isOpen = false;
+	}
 
 	let dialogTitle: string = 'Add Table';
 	let dialogDescription: string = 'Fill in the details for the new table.';
 	let buttonText: string = 'Save Table';
 
 	export let columnTypes: Array<{ name: string; type: string }> = [
-		{ name: 'String', type: 'string' },
-		{ name: 'Integer', type: 'integer' },
-		{ name: 'DateTime', type: 'datetime' }
+		{ name: 'Text (50)', type: 'VARCHAR(50)' },
+		{ name: 'Text (255)', type: 'VARCHAR(255)' },
+		{ name: 'Text (Long)', type: 'TEXT' },
+		{ name: 'Integer', type: 'INTEGER' },
+		{ name: 'Decimal', type: 'DECIMAL(10,2)' },
+		{ name: 'Boolean', type: 'BOOLEAN' },
+		{ name: 'Date', type: 'DATE' },
+		{ name: 'DateTime', type: 'TIMESTAMP' },
+		{ name: 'Primary Key', type: 'SERIAL PRIMARY KEY' }
 	];
 
 	let columnName: string = '';
@@ -93,43 +111,47 @@
             return;
         }
         
+        const colName = columnName; // Store column name before clearing it
         columns = [...columns, { name: columnName, type: columnType }];
         columnName = '';
         _selectedColumnType = { value: '' };
-        toast.success(`Column "${columnName}" added successfully`);
+        toast.success(`Column "${colName}" added successfully`);
     }
 
     onMount(() => {
-        if (isOpen && !editTable) {
-            tableName = '';
-            columns = [];
-        }
-
-		console.log('Table Dialog Opened');
-		console.log('Edit Table:', editTable);
-		console.log('Table Name:', tableName);
-		console.log('Columns:', columns);
-
-		dialogTitle = editTable ? 'Edit Table' : 'Add Table';
-		dialogDescription = editTable 
-			? 'Modify the details for this table.'
-			: 'Fill in the details for the new table.';
-		buttonText = editTable ? 'Update Table' : 'Save Table';
+        // Initialize the component based on whether we're editing or creating
+        updateDialogState();
     });
+    
+    // Function to update dialog state based on editTable flag
+    function updateDialogState() {
+        dialogTitle = editTable ? 'Edit Table' : 'Add Table';
+        dialogDescription = editTable 
+            ? 'Modify the details for this table.'
+            : 'Fill in the details for the new table.';
+        buttonText = editTable ? 'Update Table' : 'Save Table';
+        
+        // If we're editing a table, ensure we have the correct column format
+        if (editTable && tableName) {
+            // Convert columns to the expected format if they're from the store
+            // Store columns have key, name, type, sortable properties
+            // We need just name and type for our dialog
+            columns = columns.map((col) => ({
+                name: col.name ?? '',
+                type: col.type ?? ''
+            }));
+        }
+    }
 
 	$: if (isOpen) {
-		if (editTable) {
-			columns = columns.map((col) => ({ name: col.name, type: col.type }));
-			tableName = tableName;
-			dialogTitle = 'Edit Table';
-			dialogDescription = 'Modify the details for this table.';
-			buttonText = 'Update Table';
-		} else {
+		// When dialog opens, update its state based on mode
+		updateDialogState();
+		
+		// If creating a new table, reset the form
+		if (!editTable) {
 			columns = [];
 			tableName = '';
-			dialogTitle = 'Add Table';
-			dialogDescription = 'Fill in the details for the new table.';
-			buttonText = 'Save Table';
+			_selectedColumnType = { value: '' };
 		}
 	}
 
@@ -154,14 +176,36 @@
 		}
 		
 		if (result.success) {
-			onAddTable(tableName, columns);
-			onClose();
+			// Refresh the tables list after successful operation
+			await databaseStore.getTables();
+			
+			// If editing, refresh the selected table data
+			if (editTable && $tableStore.selectedTable) {
+				await tableActions.selectTable(tableName);
+			}
+			
+			toast.success(result.message || `Table ${editTable ? 'updated' : 'created'} successfully`);
+			
+			// Call the callback if provided (for backward compatibility)
+			if (onAddTable) {
+				onAddTable(tableName, columns);
+			}
+			
+			// Reset state and close dialog
+			resetState();
+		} else {
+			toast.error(result.message || `Failed to ${editTable ? 'update' : 'create'} table`);
 		}
 	}
 
 </script>
 
-<Dialog.Root bind:open={isOpen}>
+<Dialog.Root bind:open={isOpen} onOpenChange={(open) => {
+		if (!open) {
+			// When dialog is closed, reset state
+			onClose();
+		}
+	}}>
 	<Dialog.Trigger asChild let:builder>
 		<Button variant={editTable ? "outline" : "secondary"} builders={[builder]}>{dialogTitle}</Button>
 	</Dialog.Trigger>
