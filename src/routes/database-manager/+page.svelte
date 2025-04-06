@@ -13,7 +13,7 @@
 	import { Input } from '$lib/components/ui/input'; // Added for potential filtering
 	import { Label } from '$lib/components/ui/label';
 	import { CaretDown, CaretUp, CaretSort, Pencil2, Trash } from 'svelte-radix'; // Icons for sorting and actions
-	import { writable } from 'svelte/store';
+	import { writable, type Writable } from 'svelte/store';
 
 	// --- Reactive State ---
 	// Store the currently selected table name
@@ -68,11 +68,11 @@
 
 	// In a real app, you'd fetch this data based on $selectedTableName
 	// For now, we'll just use the static usersTable
-	let currentTable: DbTable = usersTable; // This would be reactive based on selected table
+	let currentTable: Writable<DbTable> = writable(usersTable); // This would be reactive based on selected table
 
 	// --- Computed Properties ---
 	// Reactive statement to sort rows based on sortConfig
-	$: sortedRows = [...currentTable.rows].sort((a, b) => {
+	$: sortedRows = [...$currentTable.rows].sort((a, b) => {
 		const { key, direction } = $sortConfig;
 		if (!direction || !key) return 0;
 
@@ -102,9 +102,8 @@
 
 	function handleSelectTable(value : Selected<unknown> | undefined) {
 		selectedTableName.set((value as Selected<unknown>)?.value as string);
-		// TODO: Add logic here to fetch and update 'currentTable'
-		// based on the selected table name 'value'.
-		// For now, it won't change the displayed data.
+	
+		currentTable.set(usersTable);
 		toast.success(`Selected table: ${value?.value}`);
 		// Reset sorting when table changes
 		sortConfig.set({ key: '', direction: null });
@@ -199,10 +198,10 @@
 
 			<div class="flex flex-wrap gap-2">
 				<TableDialog />
-				{#if currentTable}
-					<TableDialog tableName={currentTable.name} columns={currentTable.columns} retainTable />
+				{#if $currentTable}
+					<TableDialog tableName={$currentTable.name} columns={$currentTable.columns} editTable />
 				{:else}
-					<Button variant="outline" on:click={handleEditTable} disabled={!$selectedTableName}>
+					<Button variant="outline" disabled={!$selectedTableName}>
 						Edit Table
 					</Button>
 				{/if}
@@ -223,7 +222,7 @@
 				<Table.Root>
 					<Table.Header>
 						<Table.Row>
-							{#each currentTable.columns as column (column.key)}
+							{#each $currentTable.columns as column (column.key)}
 								<Table.Head>
 									{#if column.sortable}
 										<Button
@@ -256,7 +255,7 @@
 					<Table.Body>
 						{#each sortedRows as row (row.id)}
 							<Table.Row>
-								{#each currentTable.columns as column (column.key)}
+								{#each $currentTable.columns as column (column.key)}
 									<Table.Cell>
 										{row[column.key] ?? 'NULL'}
 									</Table.Cell>
@@ -284,14 +283,14 @@
 							</Table.Row>
 						{:else}
 							<Table.Row>
-								<Table.Cell colspan={currentTable.columns.length + 1} class="h-24 text-center">
+								<Table.Cell colspan={$currentTable.columns.length + 1} class="h-24 text-center">
 									No results.
 								</Table.Cell>
 							</Table.Row>
 						{/each}
 					</Table.Body>
 				</Table.Root>
-				<Pagination.Root class="my-4" count={currentTable.rows.length} perPage={10} let:pages let:currentPage>
+				<Pagination.Root class="my-4" count={$currentTable.rows.length} perPage={10} let:pages let:currentPage>
 					<Pagination.Content>
 						<Pagination.Item>
 							<Pagination.PrevButton />

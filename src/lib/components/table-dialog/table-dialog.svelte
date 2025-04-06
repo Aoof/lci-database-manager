@@ -12,17 +12,24 @@
 
 	export let tableName: string = '';
 	export let columns: Array<{ name: string; type: string }> = [];
-	export let originalTableName: string = ''; // For tracking original table name when editing
 
 	export let onAddTable: (
 		name: string,
 		columns: Array<{ name: string; type: string }>
 	) => void = () => {};
 
-	export let onClose: () => void = () => {};
+	export let onClose: () => void = () => { 
+		columns = [];
+		tableName = '';
+		_selectedColumnType = { value: '' }; 
+	};
 
 	export let isOpen: boolean = false;
-	export let retainTable: boolean = false;
+	export let editTable: boolean = false;
+
+	let dialogTitle: string = 'Add Table';
+	let dialogDescription: string = 'Fill in the details for the new table.';
+	let buttonText: string = 'Save Table';
 
 	export let columnTypes: Array<{ name: string; type: string }> = [
 		{ name: 'String', type: 'string' },
@@ -35,45 +42,128 @@
 	let _selectedColumnType: Selected<string> = { value: '' };
 	$: columnType = _selectedColumnType.value;
 
+    // Validates table name
+    function validateTableName(name: string): { valid: boolean; message?: string } {
+        if (!name.trim()) {
+            return { valid: false, message: 'Table name is required' };
+        }
+        // Check for valid identifier (letters, numbers, underscores, starting with letter)
+        if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(name)) {
+            return { 
+                valid: false, 
+                message: 'Table name must start with a letter and contain only letters, numbers, and underscores' 
+            };
+        }
+
+        return { valid: true };
+    }
+
+    // Validates column name and its uniqueness
+    function validateColumn(name: string, type: string): { valid: boolean; message?: string } {
+        if (!name.trim()) {
+            return { valid: false, message: 'Column name is required' };
+        }
+
+        if (!type) {
+            return { valid: false, message: 'Column type is required' };
+        }
+
+        // Check for valid identifier (letters, numbers, underscores, starting with letter)
+        if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(name)) {
+            return { 
+                valid: false, 
+                message: 'Column name must start with a letter and contain only letters, numbers, and underscores' 
+            };
+        }
+
+        // Check for duplicate column name
+        if (columns.some(col => col.name.toLowerCase() === name.toLowerCase())) {
+            return { valid: false, message: `Column "${name}" already exists` };
+        }
+
+        return { valid: true };
+    }
+
+    // Add a column with validation
+    function addColumn() {
+        const validation = validateColumn(columnName, columnType);
+        
+        if (!validation.valid) {
+            toast.error(validation.message ?? 'Invalid column');
+            return;
+        }
+        
+        columns = [...columns, { name: columnName, type: columnType }];
+        columnName = '';
+        _selectedColumnType = { value: '' };
+        toast.success(`Column "${columnName}" added successfully`);
+    }
+
     onMount(() => {
-        if (isOpen && !retainTable) {
+        if (isOpen && !editTable) {
             tableName = '';
             columns = [];
-            originalTableName = '';
-        } else if (isOpen && retainTable && !originalTableName) {
-            originalTableName = tableName; // Store original table name when editing
         }
+
+		console.log('Table Dialog Opened');
+		console.log('Edit Table:', editTable);
+		console.log('Table Name:', tableName);
+		console.log('Columns:', columns);
+
+		dialogTitle = editTable ? 'Edit Table' : 'Add Table';
+		dialogDescription = editTable 
+			? 'Modify the details for this table.'
+			: 'Fill in the details for the new table.';
+		buttonText = editTable ? 'Update Table' : 'Save Table';
     });
 
-	async function handleSaveTable() {
-		if (tableName && columns.length > 0) {
-			let result;
-			
-			if (retainTable) {
-				result = await databaseOperations.updateTable(originalTableName, tableName, columns);
-			} else {
-				result = await databaseOperations.createTable(tableName, columns);
-			}
-			
-			if (result.success) {
-				onAddTable(tableName, columns);
-				onClose();
-			}
+	$: if (isOpen) {
+		if (editTable) {
+			columns = columns.map((col) => ({ name: col.name, type: col.type }));
+			tableName = tableName;
+			dialogTitle = 'Edit Table';
+			dialogDescription = 'Modify the details for this table.';
+			buttonText = 'Update Table';
 		} else {
-			toast.error('Please provide table name and at least one column');
+			columns = [];
+			tableName = '';
+			dialogTitle = 'Add Table';
+			dialogDescription = 'Fill in the details for the new table.';
+			buttonText = 'Save Table';
 		}
 	}
-	
-	$: dialogTitle = retainTable ? 'Edit Table' : 'Add Table';
-	$: dialogDescription = retainTable 
-		? 'Modify the details for this table.'
-		: 'Fill in the details for the new table.';
-	$: buttonText = retainTable ? 'Update Table' : 'Save Table';
+
+	async function handleSaveTable() {
+		if (!tableName || columns.length === 0) {
+            toast.error('Please provide table name and at least one column');
+            return;
+        }
+        
+        const tableValidation = validateTableName(tableName);
+        if (!tableValidation.valid) {
+            toast.error(tableValidation.message ?? 'Invalid table name');
+            return;
+        }
+			
+		let result;
+		
+		if (editTable) {
+			result = await databaseOperations.updateTable(tableName, columns);
+		} else {
+			result = await databaseOperations.createTable(tableName, columns);
+		}
+		
+		if (result.success) {
+			onAddTable(tableName, columns);
+			onClose();
+		}
+	}
+
 </script>
 
 <Dialog.Root bind:open={isOpen}>
 	<Dialog.Trigger asChild let:builder>
-		<Button variant={retainTable ? "outline" : "secondary"} builders={[builder]}>{dialogTitle}</Button>
+		<Button variant={editTable ? "outline" : "secondary"} builders={[builder]}>{dialogTitle}</Button>
 	</Dialog.Trigger>
 	<Dialog.Content>
 		<Dialog.Header>
@@ -82,18 +172,34 @@
 		</Dialog.Header>
 		<div class="grid gap-4 py-4">
 			<div class="grid grid-cols-4 items-center gap-4">
-				<Label for="table-name" class="text-right">Table Name:</Label>
-					<Input 
+				<Label for="table-name" class="text-right">
+					Table Name:
+					{#if !tableName}
+						<span class="text-red-500">*</span>
+					{/if}
+				</Label>
+				<Input 
 					placeholder="Table Name" 
 					class="col-span-3" 
 					id="table-name" 
 					bind:value={tableName} 
-					disabled={retainTable}
-					readonly={retainTable}
+					disabled={editTable}
+					readonly={editTable}
 				/>
 			</div>
+			<div class="py-2">
+				<h4 class="mb-2 font-medium">Columns Section:</h4>
+				<p class="text-muted-foreground text-sm">
+					Click the plus icon to add a new column. You can remove a column by clicking the trash icon next to it.
+				</p>
+			</div>
 			<div class="grid grid-cols-4 items-center gap-4">
-				<Label for="column-type" class="text-right">Column Type:</Label>
+				<Label for="column-type" class="text-right">
+					Column Type:
+					{#if !(_selectedColumnType.value)}
+						<span class="text-red-500">*</span>
+					{/if}
+				</Label>
 				<div class="col-span-3">
 					<Select.Root bind:selected={_selectedColumnType}>
 						<Select.Trigger class="w-full" id="column-type">
@@ -112,7 +218,12 @@
 				</div>
 			</div>
 			<div class="grid grid-cols-4 items-center gap-4">
-				<Label for="column-name" class="text-right">Column Name:</Label>
+				<Label for="column-name" class="text-right">
+					Column Name:
+					{#if !columnName}
+						<span class="text-red-500">*</span>
+					{/if}
+				</Label>
 				<Input
 					placeholder="Column Name"
 					class="col-span-3"
@@ -125,12 +236,12 @@
 					<h4 class="mb-2 font-medium">Added Columns:</h4>
 					<div class="flex items-center gap-2">
 						<Button
-							variant="secondary"
+							variant="ghost"
+							size="icon"
+							class="h-8 w-8 hover:bg-primary/10 hover:text-primary"
 							on:click={() => {
 								if (columnName && columnType) {
-									columns = [...columns, { name: columnName, type: columnType }];
-									columnName = '';
-									_selectedColumnType = { value: '' };
+									addColumn();
 								} else {
 									toast.error('Please provide column name and type');
 								}
@@ -143,19 +254,23 @@
 				{#if columns.length > 0}
 					<ul class="space-y-1 my-2">
 						{#each columns as column}
-							<li class="bg-muted flex justify-between items-center rounded-md p-2">
-								<span>{column.name}</span>
-								<span class="text-muted-foreground">{column.type}</span>
-                                <Button
-                                    variant="destructive"
-                                    size="icon"
-                                    on:click={() => {
-                                        columns = columns.filter((c) => c.name !== column.name);
-                                        toast.success('Column removed');
-                                    }}
-                                >
-                                    <Trash class="h-4 w-4" />
-                                </Button>
+							<li class="flex items-center justify-between gap-2 rounded-md border p-3 transition-colors hover:bg-background/80">
+								<div class="flex flex-col">
+									<span class="font-medium">{column.name}</span>
+									<span class="text-xs text-muted-foreground capitalize">{column.type}</span>
+								</div>
+								<Button
+									variant="ghost"
+									size="icon"
+									class="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+									on:click={() => {
+										columns = columns.filter((c) => c.name !== column.name);
+										toast.success(`Column '${column.name}' removed`);
+									}}
+									aria-label="Remove column"
+								>
+									<Trash class="h-4 w-4" />
+								</Button>
 							</li>
 						{/each}
 					</ul>
@@ -166,7 +281,7 @@
 		</div>
 		<Dialog.Footer class="flex justify-between">
 			<div class="flex gap-2">
-				<Button on:click={handleSaveTable} disabled={$isLoading}>
+				<Button variant="secondary" on:click={handleSaveTable} disabled={$isLoading}>
 					{$isLoading ? 'Processing...' : buttonText}
 				</Button>
 			</div>

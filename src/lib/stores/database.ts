@@ -21,6 +21,7 @@ export const isLoading = writable(false);
 
 // Last executed query for display purposes
 export const lastQuery = writable('');
+
 // Database operations
 export const databaseOperations = {
   // Create a new table
@@ -32,14 +33,14 @@ export const databaseOperations = {
         name: tableName,
         columns
       });
-      
+
       // Update tables store
       tables.update(current => [...current, { name: tableName, columns }]);
-      
+
       // Store the SQL query for display
       if (data.query) {
         lastQuery.set(data.query);
-        
+
         // Show SQL command in toast
         toast.custom(DbCommand, { 
           componentProps: {
@@ -49,7 +50,7 @@ export const databaseOperations = {
           duration: 5000 
         });
       }
-      
+
       return { success: true };
     } catch (error) {
       toast.error(axios.isAxiosError(error) 
@@ -61,30 +62,29 @@ export const databaseOperations = {
       isLoading.set(false);
     }
   },
-  
+
   // Update an existing table
-  async updateTable(originalName: string, tableName: string, columns: Array<{ name: string; type: string }>) {
+  async updateTable(tableName: string, columns: Array<{ name: string; type: string }>) {
     isLoading.set(true);
-    
+
     try {
-      const { data } = await axios.put(`/?/api/tables/${originalName}`, {
-        name: tableName,
+      const { data } = await axios.put(`/?/api/tables/${tableName}`, {
         columns
       });
-      
+
       // Update tables store
       tables.update(current => 
         current.map(table => 
-          table.name === originalName 
+          table.name === tableName 
             ? { name: tableName, columns } 
             : table
         )
       );
-      
+
       // Store the SQL query for display
       if (data.query) {
         lastQuery.set(data.query);
-        
+
         // Show SQL command in toast
         toast.custom(DbCommand, { 
           componentProps: {
@@ -94,7 +94,7 @@ export const databaseOperations = {
           duration: 5000 
         });
       }
-      
+
       return { success: true };
     } catch (error) {
       toast.error(axios.isAxiosError(error) 
@@ -106,11 +106,11 @@ export const databaseOperations = {
       isLoading.set(false);
     }
   },
-  
+
   // Load all tables
   async loadTables() {
     isLoading.set(true);
-    
+
     try {
       const { data } = await axios.get('/?/api/tables');
       tables.set(data);
