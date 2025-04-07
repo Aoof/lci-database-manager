@@ -5,17 +5,42 @@ import { json } from '@sveltejs/kit';
 import format from 'pg-format';
 
 export async function GET({ url }) {
-	const viewName = url.searchParams.get('name');
+	const viewName = url.searchParams.get('view');
 	if (!viewName || !isValidIdentifier(viewName)) {
 		return json({ error: 'Invalid or missing view name' }, { status: 400 });
 	}
 
-	const limit = url.searchParams.get('limit');
-	const offset = url.searchParams.get('offset');
+	if (viewName === 'all') {
+		const table = url.searchParams.get('table');
+		if (!table || !isValidIdentifier(table)) {
+			return json({ error: 'Invalid or missing table name' }, { status: 400 });
+		}
+
+		const query = format(
+			"SELECT viewname FROM pg_views WHERE schemaname = 'public' AND definition LIKE %L",
+			`%FROM ${table}%`
+		);
+		try {
+			const views = await db.query(query);
+			return json({ query, data: views, message: 'Views retrieved successfully' }, { status: 200 });
+		} catch (error) {
+			console.error('Error executing query:', error);
+			return json({ error: 'Error executing query', details: error }, { status: 500 });
+		}
+	}
+
+	const limit = parseInt(url.searchParams.get('limit') || '10', 10);
+	const offset = parseInt(url.searchParams.get('offset') || '0', 10);
+
+	if (isNaN(limit) || limit <= 0) {
+		return json({ error: 'Invalid limit value' }, { status: 400 });
+	}
+	if (isNaN(offset) || offset < 0) {
+		return json({ error: 'Invalid offset value' }, { status: 400 });
+	}
 
 	let query = format('SELECT * FROM %I', viewName);
-	if (limit) query += format(' LIMIT %L', Number(limit));
-	if (offset) query += format(' OFFSET %L', Number(offset));
+	query += format(' LIMIT %L OFFSET %L', limit, offset);
 
 	try {
 		const data = await db.query(query);
@@ -32,7 +57,12 @@ export async function POST({ request, url }) {
 		return json({ error: 'Invalid or missing table name' }, { status: 400 });
 	}
 
-	const { viewName, select, withCheckOption }: CreateViewPayload = await request.json();
+	const viewName = url.searchParams.get('view');
+	if (!viewName || !isValidIdentifier(viewName)) {
+		return json({ error: 'Invalid or missing view name' }, { status: 400 });
+	}
+
+	const { select, withCheckOption }: CreateViewPayload = await request.json();
 	const { columns, filters, groupBy, aggregates, having, orderBy, limit, offset } = select;
 
 	if (!viewName || !isValidIdentifier(viewName)) {
@@ -111,6 +141,23 @@ export async function POST({ request, url }) {
 	try {
 		await db.query(query);
 		return json({ query, message: 'View created successfully' }, { status: 200 });
+	} catch (error) {
+		console.error('Error executing query:', error);
+		return json({ error: 'Error executing query', details: error }, { status: 500 });
+	}
+}
+
+export async function DELETE({ url }) {
+	const viewName = url.searchParams.get('name');
+	if (!viewName || !isValidIdentifier(viewName)) {
+		return json({ error: 'Invalid or missing view name' }, { status: 400 });
+	}
+
+	const query = format('DROP VIEW IF EXISTS %I', viewName);
+
+	try {
+		await db.query(query);
+		return json({ query, message: 'View deleted successfully' }, { status: 200 });
 	} catch (error) {
 		console.error('Error executing query:', error);
 		return json({ error: 'Error executing query', details: error }, { status: 500 });

@@ -63,7 +63,6 @@ export interface ConstraintPayload {
 }
 
 export interface CreateViewPayload {
-	viewName: string;
 	select: FilterPayload;
 	withCheckOption?: boolean;
 }
