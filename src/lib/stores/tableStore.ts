@@ -27,13 +27,19 @@ export const tableStore = writable<TableState>(initialState);
 export const tableActions = {
 	selectTable: async (tableName: string) => {
 		try {
-			const tableData = await databaseStore.getTable(tableName);
+			let _selectedTable : DbTable = {
+				name: tableName,
+				columns: [],
+				rows: []	
+			}
+			const tableRows = await databaseStore.getTable(tableName);
+			_selectedTable.rows = tableRows
 			tableStore.update((state) => ({
 				...state,
-				selectedTable: tableData,
+				selectedTable: _selectedTable,
 				pagination: {
 					...state.pagination,
-					totalItems: tableData.rows.length
+					totalItems: _selectedTable.rows.length
 				}
 			}));
 		} catch (error) {

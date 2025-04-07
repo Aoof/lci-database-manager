@@ -17,25 +17,13 @@
     });
 </script>
 
-<div class="relative">
-    <div class="flex justify-between items-center mb-3">
+<div class="relative w-full">
+    <div class="flex justify-between items-center w-full mb-3">
         <h2 class="text-lg font-semibold text-gray-200 flex items-center gap-2">
             <Reader class="h-6 w-6" />
             {title}
         </h2>
         <div class="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded">{language.toUpperCase()}</div>
     </div>
-    <pre class="whitespace-pre-wrap break-words overflow-auto relative"><code class={"language-" + language} bind:this={codeElem}>{code}</code><Button
-            class="cursor-pointer absolute top-2 right-2 h-8 w-8 hover:bg-primary/10 hover:text-primary"
-            variant="ghost"
-            size="sm"
-            on:click={() => {
-                navigator.clipboard.writeText(code);
-                toast.success("Code copied to clipboard", {
-                    duration: 2000,
-                });
-            }}
-        >
-            <Copy class="h-8 w-8" />
-        </Button></pre>
+    <pre class="whitespace-pre-wrap break-words overflow-auto relative w-full"><code class={"language-" + language} bind:this={codeElem}>{code.replaceAll(";", ";\n")}</code></pre>
 </div>

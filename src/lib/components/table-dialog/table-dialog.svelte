@@ -14,6 +14,7 @@
 
 	export let tableName: string = '';
 	export let columns: Array<{ name: string; type: string }> = [];
+	export let disabled: boolean = false;
 
 	// This is now just a callback for component users that need to know when a table is added/updated
 	// The actual implementation uses the store system directly
@@ -146,7 +147,7 @@
 	$: if (isOpen) {
 		// When dialog opens, update its state based on mode
 		updateDialogState();
-		
+
 		// If creating a new table, reset the form
 		if (!editTable) {
 			columns = [];
@@ -197,17 +198,13 @@
 			toast.error(result.message || `Failed to ${editTable ? 'update' : 'create'} table`);
 		}
 	}
-
 </script>
 
 <Dialog.Root bind:open={isOpen} onOpenChange={(open) => {
-		if (!open) {
-			// When dialog is closed, reset state
-			onClose();
-		}
+		if (!open) { onClose(); }
 	}}>
 	<Dialog.Trigger asChild let:builder>
-		<Button variant={editTable ? "outline" : "secondary"} builders={[builder]}>{dialogTitle}</Button>
+		<Button variant={editTable ? "outline" : "secondary"} builders={[builder]} disabled={disabled}>{dialogTitle}</Button>
 	</Dialog.Trigger>
 	<Dialog.Content>
 		<Dialog.Header>
@@ -251,7 +248,6 @@
 						</Select.Trigger>
 						<Select.Content>
 							<Select.Label>Column Types</Select.Label>
-							<Select.Separator />
 							{#each columnTypes as type (type.type)}
 								<Select.Item value={type.type} class="cursor-pointer">
 									{type.name}

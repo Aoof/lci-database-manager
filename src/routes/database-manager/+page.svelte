@@ -9,6 +9,7 @@
 	import * as Select from '$lib/components/ui/select';
 	import * as Pagination from '$lib/components/ui/pagination';
 	import * as Dialog from '$lib/components/ui/dialog';
+	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import { toast } from 'svelte-sonner';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -16,7 +17,7 @@
 	
 	// Import stores
 	import { databaseStore } from '$lib/stores/databaseStore';
-	import { tableStore, tableActions, currentTable } from '$lib/stores/tableStore';
+	import { tableStore, tableActions } from '$lib/stores/tableStore';
 	import { onMount } from 'svelte';
 	
 	// Load tables on component mount
@@ -30,6 +31,9 @@
 	$: currentPage = $tableStore.pagination.currentPage;
 	$: itemsPerPage = $tableStore.pagination.itemsPerPage;
 	$: totalItems = $tableStore.pagination.totalItems;
+	
+	// Dialog states
+	let isDeleteTableDialogOpen = false;
 
 	// Computed property for sorted rows
 	$: sortedRows = $tableStore.selectedTable?.rows || [];
@@ -43,22 +47,12 @@
 		const tableName = (value as Selected<unknown>)?.value as string;
 		if (tableName) {
 			tableActions.selectTable(tableName);
-			toast.success(`Selected table: ${tableName}`);
-		}
-	}
-
-	function handleEditTable() {
-		if (selectedTableName) {
-			toast.info(`Edit Table clicked for: ${selectedTableName}`);
-		} else {
-			toast.error('No table selected to edit');
 		}
 	}
 
 	function handleDeleteTable() {
 		if (selectedTableName) {
-			toast.info(`Delete Table clicked for: ${selectedTableName}`);
-			// Show confirmation dialog
+			isDeleteTableDialogOpen = true;
 		} else {
 			toast.error('No table selected to delete');
 		}
@@ -71,6 +65,37 @@
 	function handleDeleteRow(rowId: number) {
 		toast.info(`Delete Row clicked for ID: ${rowId}`);
 		// Show confirmation dialog
+	}
+	
+	// Confirm delete table
+	async function confirmDeleteTable() {
+		if (selectedTableName) {
+			try {
+				const response = await fetch(`/api/table?table=${selectedTableName}`, {
+					method: 'DELETE'
+				});
+				
+				const result = await response.json();
+				
+				if (response.ok) {
+					toast.success(result.message || 'Table deleted successfully');
+					// Refresh tables list
+					databaseStore.getTables();
+					// Clear selected table
+					tableStore.update(state => ({
+						...state,
+						selectedTable: null
+					}));
+				} else {
+					toast.error(result.error || 'Failed to delete table');
+				}
+			} catch (error) {
+				console.error('Error deleting table:', error);
+				toast.error('An error occurred while deleting the table');
+			} finally {
+				isDeleteTableDialogOpen = false;
+			}
+		}
 	}
 
 	// Get available tables from the database store
@@ -125,13 +150,7 @@
 
 			<div class="flex flex-wrap gap-2">
 				<TableDialog />
-				{#if $tableStore.selectedTable}
-					<TableDialog tableName={$tableStore.selectedTable.name} columns={$tableStore.selectedTable.columns} editTable />
-				{:else}
-					<Button variant="outline" disabled={!selectedTableName}>
-						Edit Table
-					</Button>
-				{/if}
+				<TableDialog tableName={$tableStore.selectedTable?.name} columns={$tableStore.selectedTable?.columns} editTable disabled={!selectedTableName} />
 				<Button variant="destructive" on:click={handleDeleteTable} disabled={!selectedTableName}>
 					Delete Table
 				</Button>
@@ -254,4 +273,21 @@
 		{/if}
 	</section>
 
+	<!-- Delete Table Confirmation Dialog -->
+	<AlertDialog.Root bind:open={isDeleteTableDialogOpen}>
+		<AlertDialog.Content>
+			<AlertDialog.Header>
+				<AlertDialog.Title>Delete Table</AlertDialog.Title>
+				<AlertDialog.Description>
+					Are you sure you want to delete the table "{selectedTableName}"? This action cannot be undone.
+				</AlertDialog.Description>
+			</AlertDialog.Header>
+			<AlertDialog.Footer>
+				<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+				<AlertDialog.Action on:click={confirmDeleteTable} class="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+					Delete
+				</AlertDialog.Action>
+			</AlertDialog.Footer>
+		</AlertDialog.Content>
+	</AlertDialog.Root>
 </div>

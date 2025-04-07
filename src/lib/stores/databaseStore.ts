@@ -23,7 +23,8 @@ export const databaseStore = {
 		try {
 			const response = await fetch('/api/table?table=all');
 			const result = await response.json();
-			database.update((state) => ({ ...state, tables: result.data, isLoading: false }));
+
+			database.update((state) => ({ ...state, tables: result.data.map((table: { table_name: string }) => table.table_name), isLoading: false }));
 
 			// Show the SQL query using the DbCommand component
 			if (result.query) {
