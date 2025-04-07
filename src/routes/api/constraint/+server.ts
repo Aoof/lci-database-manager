@@ -42,10 +42,10 @@ export async function POST({ request, url }) {
 		switch (constraint.type) {
 			case 'PRIMARY_KEY': {
 				query += format(
-					'ALTER TABLE %I ADD CONSTRAINT %I PRIMARY KEY (%I)',
+					'ALTER TABLE %I ADD CONSTRAINT %I PRIMARY KEY (%s)',
 					table,
-					`${table}_${constraint.column}_PK`,
-					constraint.column
+					`${table}_${constraint.columns.join('_')}_PK`,
+					constraint.columns.map((col) => format('%I', col)).join(', ')
 				);
 				break;
 			}

@@ -52,7 +52,7 @@ export interface FilterPayload {
 }
 
 type Constraint =
-	| { type: 'PRIMARY_KEY'; column: string }
+	| { type: 'PRIMARY_KEY'; columns: string[] }
 	| { type: 'FOREIGN_KEY'; columns: string[]; foreignTable: string; foreignColumns: string[] }
 	| { type: 'NOT_NULL'; columns: string[] }
 	| { type: 'CHECK'; checkString: string }
@@ -65,8 +65,5 @@ export interface ConstraintPayload {
 export interface CreateViewPayload {
 	viewName: string;
 	select: FilterPayload;
-	options?: {
-		withCheckOption?: boolean;
-		readOnly?: boolean;
-	};
+	withCheckOption?: boolean;
 }
