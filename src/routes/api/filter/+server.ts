@@ -1,5 +1,5 @@
 import { db } from '$lib/server/db';
-import type { TableFilterPayload } from '$lib/types/db';
+import type { FilterPayload } from '$lib/types/db';
 import { isValidIdentifier } from '$lib/utils/db';
 import { json } from '@sveltejs/kit';
 import format from 'pg-format';
@@ -11,11 +11,20 @@ export async function POST({ request, url }) {
 		return json({ error: 'Invalid table name' }, { status: 400 });
 	}
 
-	const { filters, sort, limit, offset }: TableFilterPayload = await request.json();
+	const { columns, filters, groupBy, aggregates, having, orderBy, limit, offset }: FilterPayload =
+		await request.json();
 
-	// Build the WHERE clause by iterating over the filters object
+	// Build the SELECT clause
+	const selectColumns = columns.map((col) => format('%I', col));
+	if (aggregates && aggregates.length > 0) {
+		aggregates.forEach((agg) =>
+			selectColumns.push(format('%s(%I) AS %I', agg.func, agg.column, `${agg.func}_${agg.column}`))
+		);
+	}
+	const selectClause = selectColumns.join(', ');
+
+	// Build the WHERE clause
 	const conditions: string[] = [];
-
 	if (filters && filters.length > 0) {
 		for (const filter of filters) {
 			switch (filter.type) {
@@ -27,23 +36,19 @@ export async function POST({ request, url }) {
 				case '>=':
 					conditions.push(format('%I %s %L', filter.column, filter.type, filter.value));
 					break;
-
 				case 'IN':
 				case 'NOT IN':
 					conditions.push(format('%I %s (%L)', filter.column, filter.type, filter.value));
 					break;
-
 				case 'BETWEEN':
 					conditions.push(
 						format('%I BETWEEN %L AND %L', filter.column, filter.value[0], filter.value[1])
 					);
 					break;
-
 				case 'IS NULL':
 				case 'IS NOT NULL':
 					conditions.push(format('%I %s', filter.column, filter.type));
 					break;
-
 				case 'ILIKE':
 					conditions.push(format('%I ILIKE %L', filter.column, filter.value));
 					break;
@@ -52,21 +57,42 @@ export async function POST({ request, url }) {
 	}
 	const whereClause = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
 
-	// Build the ORDER BY clause if sorting information is provided
+	// Build the GROUP BY clause
+	const groupByClause =
+		groupBy && groupBy.length > 0
+			? 'GROUP BY ' + groupBy.map((col) => format('%I', col)).join(', ')
+			: '';
+
+	// Build the HAVING clause
+	let havingClause = '';
+	if (having) {
+		havingClause = format(
+			'HAVING %s(%I) %s %L',
+			having.func,
+			having.column,
+			having.operator,
+			having.value
+		);
+	}
+
+	// Build the ORDER BY clause
 	let orderClause = '';
-	if (sort && sort.column) {
-		orderClause = format('ORDER BY %I %s', sort.column, sort.direction);
+	if (orderBy && orderBy.column) {
+		orderClause = format('ORDER BY %I %s', orderBy.column, orderBy.direction);
 	}
 
 	// Build LIMIT and OFFSET clauses
-	const limitClause = limit ? format('LIMIT %I', limit) : '';
-	const offsetClause = offset ? format('OFFSET %I', offset) : '';
+	const limitClause = limit ? format('LIMIT %L', limit) : '';
+	const offsetClause = offset ? format('OFFSET %L', offset) : '';
 
 	// Construct the final SQL command
 	const query = format(
-		'SELECT * FROM %I %s %s %s %s;',
+		'SELECT %s FROM %I %s %s %s %s %s %s;',
+		selectClause,
 		table,
 		whereClause,
+		groupByClause,
+		havingClause,
 		orderClause,
 		limitClause,
 		offsetClause
@@ -74,10 +100,9 @@ export async function POST({ request, url }) {
 
 	try {
 		const rows = await db.query(query);
-
 		return json({ query, data: rows, message: 'Data retrieved successfully' }, { status: 200 });
-	} catch (error: any) {
+	} catch (error) {
 		console.error('Error executing query:', error);
-		return json({ error: error.message }, { status: 500 });
+		return json({ error: 'Error executing query', details: error }, { status: 500 });
 	}
 }

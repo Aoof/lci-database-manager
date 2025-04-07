@@ -25,7 +25,10 @@ export async function GET({ url }) {
 		}
 	}
 
-	const query = format('SELECT * FROM %I;', table);
+	const query = format(
+		'SELECT column_name, data_type FROM information_schema.columns WHERE table_name = %L;',
+		table
+	);
 
 	try {
 		const rows = await db.query(query);

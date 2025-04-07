@@ -17,12 +17,15 @@ export interface UpdateTablePayload {
 
 // Type for the JSON payload expected by the POST method in row insertion
 export interface InsertRowPayload {
-	values: Record<string, any>; // Key-value pairs to insert into the row
+	values: Record<string, unknown>; // Key-value pairs to insert into the row
 }
+
+export type IdentifierPayload = Record<string, unknown>; // Key-value pairs of column names and their current values
 
 // Type for the JSON payload expected by the PUT method in row updates
 export interface UpdateRowPayload {
-	values: Record<string, any>; // Key-value pairs of column names and their new values
+	identifier: IdentifierPayload; // Identifier for the row to update
+	values: Record<string, unknown>; // Key-value pairs of column names and their new values
 }
 
 type FilterCondition =
@@ -32,14 +35,20 @@ type FilterCondition =
 	| { column: string; type: 'IS NULL' | 'IS NOT NULL' }
 	| { column: string; type: 'ILIKE'; value: string };
 
-export interface TableFilterPayload {
-	filters?: FilterCondition[];
-	sort?: {
+export interface FilterPayload {
+	columns: string[]; // Columns to select, may include aggregates (e.g., 'MAX(sal)' as alias)
+	filters?: FilterCondition[]; // Advanced filtering (supporting operators like '=', '<>', 'IN', 'BETWEEN', etc.)
+	groupBy?: string[]; // Columns to group by
+	aggregates?: { func: 'MAX' | 'MIN' | 'AVG' | 'SUM' | 'COUNT'; column: string }[]; // Aggregate functions
+	having?: {
+		func: 'MAX' | 'MIN' | 'AVG' | 'SUM' | 'COUNT';
 		column: string;
-		direction: 'ASC' | 'DESC';
-	};
-	limit?: number;
-	offset?: number;
+		operator: '=' | '!=' | '<' | '<=' | '>' | '>=';
+		value: number;
+	}; // HAVING clause for filtering groups
+	orderBy?: { column: string; direction: 'ASC' | 'DESC' }; // Ordering
+	limit?: number; // Pagination limit
+	offset?: number; // Pagination offset
 }
 
 type Constraint =
@@ -51,4 +60,13 @@ type Constraint =
 
 export interface ConstraintPayload {
 	constraints: Constraint[]; // Array of constraints to be applied to the table
+}
+
+export interface CreateViewPayload {
+	viewName: string;
+	select: FilterPayload;
+	options?: {
+		withCheckOption?: boolean;
+		readOnly?: boolean;
+	};
 }
