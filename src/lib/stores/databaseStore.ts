@@ -45,7 +45,7 @@ export const databaseStore = {
 		database.update((state) => ({ ...state, isLoading: true }));
 		try {
 			const response = await fetch(`/api/table?table=${name}`);
-			const result = await response.json();
+			const result = await response.json(); // Result will be { column_name : string, data_type : string }[]
 
 			// Show the SQL query using the DbCommand component
 			if (result.query) {
@@ -67,6 +67,33 @@ export const databaseStore = {
 				isLoading: false
 			}));
 			return null;
+		}
+	},
+	async getRows(name: string, limit: number = 10, offset: number = 0) {
+		database.update((state) => ({...state, isLoading: true }));
+		try {
+			const response = await fetch(`/api/row?table=${name}&limit=${limit}&offset=${offset}`);
+			const result = await response.json();
+
+			// Show the SQL query using the DbCommand component
+			if (result.query) {
+                toast(DbCommand, {
+                    duration: 5000,
+                    componentProps: {
+                        code: result.query,
+                        title: 'SQL Query',
+                        language:'sql'
+                    }
+                })
+            }
+
+			return result;
+		} catch (error) {
+			database.update((state) => ({
+				...state,
+				error: 'Failed to load table data',
+				isLoading: false
+			}));
 		}
 	}
 };

@@ -3,22 +3,21 @@
 	
 	// Import necessary Svelte and shadcn-svelte components
 	import { TableDialog } from '$lib/components/table-dialog';
+	import { RowDialog } from '$lib/components/row-dialog';
 	import { Button } from '$lib/components/ui/button';
 	import * as Sheet from '$lib/components/ui/sheet';
 	import * as Table from '$lib/components/ui/table';
 	import * as Select from '$lib/components/ui/select';
 	import * as Pagination from '$lib/components/ui/pagination';
-	import * as Dialog from '$lib/components/ui/dialog';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import { toast } from 'svelte-sonner';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
 	import { CaretDown, CaretUp, CaretSort, Pencil2, Trash } from 'svelte-radix';
 	
 	// Import stores
 	import { databaseStore } from '$lib/stores/databaseStore';
 	import { tableStore, tableActions } from '$lib/stores/tableStore';
 	import { onMount } from 'svelte';
+	import type { Row } from '$lib/types';
 	
 	// Load tables on component mount
 	onMount(() => {
@@ -34,6 +33,9 @@
 	
 	// Dialog states
 	let isDeleteTableDialogOpen = false;
+	let isAddRowDialogOpen = false;
+	let isEditRowDialogOpen = false;
+	let currentRowData: Row | null = null;
 
 	// Computed property for sorted rows
 	$: sortedRows = $tableStore.selectedTable?.rows || [];
@@ -51,50 +53,40 @@
 	}
 
 	function handleDeleteTable() {
-		if (selectedTableName) {
-			isDeleteTableDialogOpen = true;
+		isDeleteTableDialogOpen = true;
+	}
+
+	// Dialog states for row operations
+	let isDeleteRowDialogOpen = false;
+	let currentRowId: number | null = null;
+
+	function handleEditRow(rowId: number) {
+		const row = $tableStore.selectedTable?.rows.find(row => row.id === rowId);
+		if (row) {
+			currentRowData = row;
+			isEditRowDialogOpen = true;
 		} else {
-			toast.error('No table selected to delete');
+			toast.error('Row not found');
 		}
 	}
 
-	function handleEditRow(rowId: number) {
-		toast.info(`Edit Row clicked for ID: ${rowId}`);
-	}
-
 	function handleDeleteRow(rowId: number) {
-		toast.info(`Delete Row clicked for ID: ${rowId}`);
-		// Show confirmation dialog
+		currentRowId = rowId;
+		isDeleteRowDialogOpen = true;
 	}
 	
-	// Confirm delete table
+	async function confirmDeleteRow() {
+		if (currentRowId !== null) {
+			await tableActions.deleteRow(currentRowId);
+			currentRowId = null;
+			isDeleteRowDialogOpen = false;
+		}
+	}
+	
 	async function confirmDeleteTable() {
 		if (selectedTableName) {
-			try {
-				const response = await fetch(`/api/table?table=${selectedTableName}`, {
-					method: 'DELETE'
-				});
-				
-				const result = await response.json();
-				
-				if (response.ok) {
-					toast.success(result.message || 'Table deleted successfully');
-					// Refresh tables list
-					databaseStore.getTables();
-					// Clear selected table
-					tableStore.update(state => ({
-						...state,
-						selectedTable: null
-					}));
-				} else {
-					toast.error(result.error || 'Failed to delete table');
-				}
-			} catch (error) {
-				console.error('Error deleting table:', error);
-				toast.error('An error occurred while deleting the table');
-			} finally {
-				isDeleteTableDialogOpen = false;
-			}
+			await tableActions.deleteTable(selectedTableName);
+			isDeleteTableDialogOpen = false;
 		}
 	}
 
@@ -150,7 +142,7 @@
 
 			<div class="flex flex-wrap gap-2">
 				<TableDialog />
-				<TableDialog tableName={$tableStore.selectedTable?.name} columns={$tableStore.selectedTable?.columns} editTable disabled={!selectedTableName} />
+				<TableDialog tableName={$tableStore.selectedTable?.name} columns={$tableStore.selectedTable?.columns} editTable={true} disabled={!selectedTableName} />
 				<Button variant="destructive" on:click={handleDeleteTable} disabled={!selectedTableName}>
 					Delete Table
 				</Button>
@@ -159,9 +151,22 @@
 	</section>
 
 	<section class="p-4 border rounded-lg bg-card text-card-foreground">
-		<h2 class="text-xl font-semibold mb-4">
-			Data for: { selectedTableName ?? 'No table selected'}
-		</h2>
+		<div class="flex justify-between items-center mb-4">
+			<h2 class="text-xl font-semibold">
+				Data for: {selectedTableName ?? 'No table selected'}
+			</h2>
+			
+			{#if selectedTableName}
+				<RowDialog 
+					bind:isOpen={isAddRowDialogOpen} 
+					editMode={false} 
+					rowData={null} 
+					onClose={() => {
+						isAddRowDialogOpen = false;
+					}}
+				/>
+			{/if}
+		</div>
 
 		{#if selectedTableName}
 			<div class="rounded-md border">
@@ -184,9 +189,7 @@
 												{:else}
 													<CaretDown class="ml-2 h-4 w-4" />
 												{/if}
-											{/if}
-
-											{#if sortConfig.key !== column.key}
+											{:else}
 												<CaretSort class="ml-2 h-4 w-4 opacity-50" />
 											{/if}
 										</Button>
@@ -249,16 +252,16 @@
 							<Pagination.PrevButton />
 						</Pagination.Item>
 						{#each pages as page (page.key)}
-							{#if page.type == "ellipsis"}
-							<Pagination.Item>
-								<Pagination.Ellipsis />
-							</Pagination.Item>
+							{#if page.type === "ellipsis"}
+								<Pagination.Item>
+									<Pagination.Ellipsis />
+								</Pagination.Item>
 							{:else}
-							<Pagination.Item class={(localPage == page.value) ? "" : "hidden"}>
-								<Pagination.Link {page} isActive={localPage == page.value}>
-									{page.value}
-								</Pagination.Link>
-							</Pagination.Item>
+								<Pagination.Item class={localPage === page.value ? "" : "hidden"}>
+									<Pagination.Link {page} isActive={localPage === page.value}>
+										{page.value}
+									</Pagination.Link>
+								</Pagination.Item>
 							{/if}
 						{/each}
 						<Pagination.Item>
@@ -267,8 +270,7 @@
 					</Pagination.Content>
 				</Pagination.Root>
 			</div>
-
-			{:else}
+		{:else}
 			<p class="text-muted-foreground">Please select a table to view its data.</p>
 		{/if}
 	</section>
@@ -290,4 +292,33 @@
 			</AlertDialog.Footer>
 		</AlertDialog.Content>
 	</AlertDialog.Root>
+
+	<!-- Delete Row Confirmation Dialog -->
+	<AlertDialog.Root bind:open={isDeleteRowDialogOpen}>
+		<AlertDialog.Content>
+			<AlertDialog.Header>
+				<AlertDialog.Title>Delete Row</AlertDialog.Title>
+				<AlertDialog.Description>
+					Are you sure you want to delete this row? This action cannot be undone.
+				</AlertDialog.Description>
+			</AlertDialog.Header>
+			<AlertDialog.Footer>
+				<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+				<AlertDialog.Action on:click={confirmDeleteRow} class="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+					Delete
+				</AlertDialog.Action>
+			</AlertDialog.Footer>
+		</AlertDialog.Content>
+	</AlertDialog.Root>
+
+	<RowDialog
+		bind:isOpen={isEditRowDialogOpen}
+		editMode={true} 
+		rowData={currentRowData}
+		onClose={() => {
+			isEditRowDialogOpen = false;
+			currentRowData = null;
+		}}
+		hideButton={true}
+	/>
 </div>
