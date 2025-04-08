@@ -1,1 +1,1 @@
-export { default as RowDialog } from './RowDialog.svelte';
+export { default as RowDialog } from './row-dialog.svelte';

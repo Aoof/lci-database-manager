@@ -128,9 +128,9 @@
 					<Select.Content>
 						<Select.Label>Available Tables</Select.Label>
 						<Select.Separator />
-						{#each availableTables as tableName (tableName)}
-							<Select.Item value={tableName} class="cursor-pointer">
-								{tableName}
+						{#each availableTables as table (table)}
+							<Select.Item value={table.name} class="cursor-pointer">
+								{table.name}
 							</Select.Item>
 						{/each}
 						{#if availableTables.length === 0}

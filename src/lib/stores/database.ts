@@ -1,5 +1,4 @@
 import { writable } from 'svelte/store';
-import type { Column } from '$lib/types';
 import { toast } from 'svelte-sonner';
 import { DbCommand } from '$lib/components/db-command';
 
@@ -22,7 +21,7 @@ export const databaseOperations = {
 
             const result = await response.json();
             isLoading.set(false);
-            
+
             if (response.ok) {
                 // Show the SQL query using the DbCommand component
                 if (result.query) {
@@ -58,7 +57,7 @@ export const databaseOperations = {
                 isLoading.set(false);
                 return { success: false, message: 'Failed to fetch existing columns' };
             }
-            
+
             // Get existing column names from the first row of data
             const existingColumns = existingColumnsData.data.length > 0 
                 ? Object.keys(existingColumnsData.data[0]).filter(col => col !== 'id')
@@ -66,7 +65,7 @@ export const databaseOperations = {
             
             // Determine changes to make
             const changes = [];
-            
+
             // Add new columns
             for (const column of columns) {
                 if (!existingColumns.includes(column.name)) {
@@ -75,9 +74,18 @@ export const databaseOperations = {
                         column: column.name,
                         type: column.type
                     });
+                } else {
+                    const existingColumn = existingColumnsData.data[0][column.name];
+                    if (existingColumn !== column.type) {
+                        changes.push({
+                            action: 'MODIFY',
+                            column: column.name,
+                            type: column.type
+                        });
+                    }
                 }
             }
-            
+
             // Drop columns that no longer exist
             for (const existingCol of existingColumns) {
                 if (!columns.some(col => col.name === existingCol)) {

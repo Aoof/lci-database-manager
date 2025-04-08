@@ -7,6 +7,7 @@
 	import { PlusCircled } from 'svelte-radix';
 	import { tableStore, tableActions } from '$lib/stores/tableStore';
 	import type { Column, Row } from '$lib/types';
+	import { ColumnTypes } from '$lib/lib/utils';
 
 	// Props
 	export let isOpen: boolean = false;
@@ -66,10 +67,9 @@
 	// Get the appropriate input type based on column data type
 	function getInputType(columnType: string): string {
 		switch (columnType.toLowerCase()) {
+			case 'serial':
 			case 'integer':
 			case 'decimal':
-			case 'numeric':
-			case 'float':
 				return 'number';
 			case 'date':
 				return 'date';
@@ -101,10 +101,9 @@
 
 			// Validate numeric fields
 			if (
-				(column.type.toLowerCase().includes('int') ||
-					column.type.toLowerCase().includes('decimal') ||
-					column.type.toLowerCase().includes('numeric') ||
-					column.type.toLowerCase().includes('float')) &&
+				(column.type.toLowerCase().includes('decimal') ||
+				 column.type.toLowerCase().includes('integer') ||
+				 column.type.toLowerCase().includes('serial')) &&
 				isNaN(Number(formValues[column.key]))
 			) {
 				return { valid: false, message: `${column.name} must be a number` };
@@ -151,12 +150,10 @@
 		let value: any = target.value;
 
 		// Convert value based on column type
-		if (column.type.toLowerCase().includes('int')) {
-			value = value ? parseInt(value, 10) : null;
-		} else if (
+		if (
 			column.type.toLowerCase().includes('decimal') ||
-			column.type.toLowerCase().includes('numeric') ||
-			column.type.toLowerCase().includes('float')
+			column.type.toLowerCase().includes('integer') ||
+			column.type.toLowerCase().includes('serial')
 		) {
 			value = value ? parseFloat(value) : null;
 		} else if (column.type.toLowerCase() === 'boolean') {

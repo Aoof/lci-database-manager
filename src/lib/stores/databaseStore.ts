@@ -3,7 +3,13 @@ import { toast } from 'svelte-sonner';
 import { DbCommand } from '$lib/components/db-command';
 
 export interface DatabaseState {
-	tables: string[];
+	tables: {
+		name: string;
+		columns: {
+			name: string;
+			type: string;
+		}[];
+	}[];
 	isLoading: boolean;
 	error: string | null;
 }
@@ -23,8 +29,28 @@ export const databaseStore = {
 		try {
 			const response = await fetch('/api/table?table=all');
 			const result = await response.json();
+			
+			let _tables = [];
 
-			database.update((state) => ({ ...state, tables: result.data.map((table: { table_name: string }) => table.table_name), isLoading: false }));
+			for (const { table_name } of result.data) {
+				let _columns = [];
+
+				const tableData = await databaseStore.getTable(table_name);
+
+				for (const { column_name, data_type } of tableData.data) {
+					_columns.push({
+						name: column_name,
+						type: data_type
+					});
+				}
+
+				_tables.push({
+					name: table_name,
+					columns: _columns
+				});
+			}
+
+			database.update((state) => ({ ...state, tables: _tables, isLoading: false }));
 
 			// Show the SQL query using the DbCommand component
 			if (result.query) {
@@ -45,7 +71,7 @@ export const databaseStore = {
 		database.update((state) => ({ ...state, isLoading: true }));
 		try {
 			const response = await fetch(`/api/table?table=${name}`);
-			const result = await response.json(); // Result will be { column_name : string, data_type : string }[]
+			const result = await response.json();
 
 			// Show the SQL query using the DbCommand component
 			if (result.query) {

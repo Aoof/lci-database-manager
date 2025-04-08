@@ -2,9 +2,7 @@
     import { onMount } from "svelte";
     import hljs from "highlight.js";
     import "highlight.js/styles/atom-one-dark-reasonable.css";
-	import Button from "../ui/button/button.svelte";
-    import { toast } from "svelte-sonner";
-    import { Copy, Reader } from "svelte-radix";
+    import { Reader } from "svelte-radix";
 
     export let code : string = "";
     export let language : string = "sql";

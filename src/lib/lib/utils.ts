@@ -7,6 +7,17 @@ export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
 
+export const ColumnTypes : Array<{ name: string; type: string }> = [
+  { name: "Text (50)", type: "VARCHAR(50)" },
+  { name: "Text (255)", type: "VARCHAR(255)" },
+  { name: "Integer", type: "INTEGER" },
+  { name: "Decimal", type: "DECIMAL" },
+  { name: "Date", type: "DATE" },
+  { name: "Boolean", type: "BOOLEAN" },
+  { name: "DateTime", type: "TIMESTAMP" },
+  { name: "Serial Number", type: "SERIAL" },
+] 
+
 type FlyAndScaleParams = {
 	y?: number;
 	x?: number;

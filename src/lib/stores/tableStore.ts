@@ -47,7 +47,6 @@ export const tableActions = {
 					});
 				}
 
-				toast.success(result.message || 'Table deleted successfully');
 				databaseStore.getTables();
 				tableStore.update(state => ({
 					...state,
