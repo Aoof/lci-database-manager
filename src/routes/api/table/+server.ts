@@ -100,26 +100,31 @@ export async function PUT({ request, url }) {
 		}
 	}
 
-	const query = changes
-		.map((change) => {
-			if (change.action === 'ADD') {
+	const queries = changes.map((change) => {
+		switch (change.action) {
+			case 'ADD':
 				return format('ALTER TABLE %I ADD COLUMN %I %s', table, change.column, change.type);
-			} else if (change.action === 'DROP') {
+			case 'DROP':
 				return format('ALTER TABLE %I DROP COLUMN %I', table, change.column);
-			} else if (change.action === 'MODIFY') {
+			case 'MODIFY':
 				return format('ALTER TABLE %I ALTER COLUMN %I TYPE %s', table, change.column, change.type);
-			}
-		})
-		.join('; ');
+		}
+	});
 
 	try {
-		await db.query(query);
+		await Promise.all(
+			queries.map(async (query) => {
+				await db.query(query);
+			})
+		);
 
-		return json({ query, message: 'Table updated successfully' }, { status: 200 });
+		return json(
+			{ query: queries.join(';'), message: 'Table updated successfully' },
+			{ status: 200 }
+		);
 	} catch (error) {
-		console.error('query: ', query);
-		console.error('Error executing query:', error);
-		return json({ error: 'Error executing query: ' + error }, { status: 500 });
+		console.error('Error executing queries:', error);
+		return json({ error: 'Error executing queries: ' + error }, { status: 500 });
 	}
 }
 

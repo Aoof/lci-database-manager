@@ -33,24 +33,18 @@ export async function POST({ request, url }) {
 
 	const constraints: ConstraintPayload = await request.json();
 
-	let query: string = '';
-	for (const constraint of constraints.constraints) {
-		if (!isValidIdentifier(constraint.type)) {
-			return json({ error: `Invalid constraint name: ${constraint.type}` }, { status: 400 });
-		}
-
+	const queries = constraints.constraints.map((constraint) => {
 		switch (constraint.type) {
 			case 'PRIMARY_KEY': {
-				query += format(
+				return format(
 					'ALTER TABLE %I ADD CONSTRAINT %I PRIMARY KEY (%s)',
 					table,
 					`${table}_${constraint.columns.join('_')}_PK`,
 					constraint.columns.map((col) => format('%I', col)).join(', ')
 				);
-				break;
 			}
 			case 'FOREIGN_KEY': {
-				query += format(
+				return format(
 					'ALTER TABLE %I ADD CONSTRAINT %I FOREIGN KEY (%s) REFERENCES %I (%s)',
 					table,
 					`${table}_${constraint.columns.join('_')}_FK`,
@@ -58,42 +52,45 @@ export async function POST({ request, url }) {
 					constraint.foreignTable,
 					constraint.foreignColumns.map((col) => format('%I', col)).join(', ')
 				);
-				break;
 			}
-			case 'UNIQUE': {
-				query += format(
+			case 'UNIQUE':
+				return format(
 					'ALTER TABLE %I ADD CONSTRAINT %s UNIQUE(%I)',
 					table,
 					`${table}_${constraint.column}_UK`,
 					constraint.column
 				);
-				break;
-			}
+
 			case 'NOT_NULL': {
-				query += format(
+				return format(
 					'ALTER TABLE %I %s',
 					table,
 					constraint.columns.map((col) => format('ALTER COLUMN %I SET NOT NULL', col)).join(', ')
 				);
-				break;
 			}
 			case 'CHECK': {
-				query += format(
+				return format(
 					'ALTER TABLE %I ADD CONSTRAINT %I CHECK (%s)',
 					table,
 					`${table}_CC`,
 					constraint.checkString
 				);
-				break;
 			}
 		}
+	});
 
-		try {
-			await db.query(query);
-			return json({ query, message: 'Constraint added successfully' }, { status: 200 });
-		} catch (error) {
-			console.error('Error executing query:', error);
-			return json({ error: 'Error executing query' }, { status: 500 });
-		}
+	try {
+		Promise.all(
+			queries.map(async (query) => {
+				await db.query(query);
+			})
+		);
+		return json(
+			{ query: queries.join(';'), message: 'Constraint added successfully' },
+			{ status: 200 }
+		);
+	} catch (error) {
+		console.error('Error executing query:', error);
+		return json({ error: 'Error executing query' }, { status: 500 });
 	}
 }
