@@ -57,6 +57,20 @@ export async function POST({ request, url }) {
 	}
 	const whereClause = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
 
+	if (url.searchParams.has('count')) {
+		const countQuery = format('SELECT COUNT(*) FROM %I %s;', table, whereClause);
+		try {
+			const count = await db.query(countQuery);
+			return json(
+				{ query: countQuery, data: count, message: 'Count retrieved successfully!' },
+				{ status: 200 }
+			);
+		} catch (error) {
+			console.error('Error executing query:', error);
+			return json({ error: 'Error executing query', details: error }, { status: 500 });
+		}
+	}
+
 	// Build the GROUP BY clause
 	const groupByClause =
 		groupBy && groupBy.length > 0

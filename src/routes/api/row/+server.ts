@@ -11,6 +11,20 @@ export async function GET({ url }) {
 		return json({ error: 'Invalid table name' }, { status: 400 });
 	}
 
+	if (url.searchParams.has('count')) {
+		const query = format('SELECT COUNT(*) FROM %I', table);
+		try {
+			const count = await db.query(query);
+			return json(
+				{ query, data: count, message: 'Count retrieved successfully!' },
+				{ status: 200 }
+			);
+		} catch (error) {
+			console.error('Error executing query:', error);
+			return json({ error: 'Error executing query' }, { status: 500 });
+		}
+	}
+
 	const limit = parseInt(url.searchParams.get('limit') || '10', 10);
 	const offset = parseInt(url.searchParams.get('offset') || '0', 10);
 
