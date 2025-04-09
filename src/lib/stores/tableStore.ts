@@ -125,16 +125,22 @@ export const tableActions = {
 					type: element.data_type,
 					sortable: true
 				})
-			}			
+			}
 			_selectedTable.columns = _columns;
-			_selectedTable.rows = (await databaseStore.getRows(tableName))?.data as Row[];
 
+			const state = get(tableStore);
+			const offset = state.pagination.itemsPerPage * (state.pagination.currentPage - 1);
+			_selectedTable.rows = (await databaseStore.getRows(tableName, state.pagination.itemsPerPage, offset))?.data as Row[];
+
+			let _totalItems = (await databaseStore.getRowsLength(tableName))?.data[0] || _selectedTable.rows.length;
+			
 			tableStore.update((state) => ({
 				...state,
 				selectedTable: _selectedTable,
 				pagination: {
-					...state.pagination,
-					totalItems: _selectedTable.rows.length
+					currentPage: state.pagination.currentPage,
+					itemsPerPage: state.pagination.itemsPerPage,
+					totalItems: _totalItems
 				}
 			}));
 		} catch (error) {
@@ -169,7 +175,8 @@ export const tableActions = {
 		});
 	},
 
-	setPagination: (page: number) => {
+	setPagination: async (page: number) => {
+		console.log('setPagination', page);
 		tableStore.update((state) => ({
 			...state,
 			pagination: {
@@ -177,6 +184,20 @@ export const tableActions = {
 				currentPage: page
 			}
 		}));
+
+		// Fetch new data with updated pagination
+		const state = get(tableStore);
+		if (state.selectedTable) {
+			const offset = state.pagination.itemsPerPage * (page - 1);
+			const newRows = (await databaseStore.getRows(state.selectedTable.name, state.pagination.itemsPerPage, offset))?.data as Row[];
+			tableStore.update((state) => ({
+				...state,
+				selectedTable: state.selectedTable ? {
+					...state.selectedTable,
+					rows: newRows
+				} : null
+			}));
+		}
 	},
 
 	deleteRow: async (rowId: number) => {

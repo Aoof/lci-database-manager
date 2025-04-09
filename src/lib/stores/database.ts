@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
 import { toast } from 'svelte-sonner';
 import { DbCommand } from '$lib/components/db-command';
+import type { Column } from '$lib/types';
 
 // Loading state store
 export const isLoading = writable<boolean>(false);
@@ -8,7 +9,7 @@ export const isLoading = writable<boolean>(false);
 // Database operations for table management
 export const databaseOperations = {
     // Create a new table
-    async createTable(tableName: string, columns: Array<{ name: string; type: string }>) {
+    async createTable(tableName: string, columns: Column[]) {
         isLoading.set(true);
         try {
             const response = await fetch(`/api/table?table=${tableName}`, {
@@ -46,7 +47,7 @@ export const databaseOperations = {
     },
 
     // Update an existing table
-    async updateTable(tableName: string, columns: Array<{ name: string; type: string }>) {
+    async updateTable(tableName: string, columns: Column[]) {
         isLoading.set(true);
         try {
             // Convert columns to the format expected by the API
@@ -60,7 +61,7 @@ export const databaseOperations = {
 
             // Get existing column names from the first row of data
             const existingColumns = existingColumnsData.data.length > 0 
-                ? Object.keys(existingColumnsData.data[0]).filter(col => col !== 'id')
+                ? existingColumnsData.data.map((row : any) => { console.log(row.column_name); return row.column_name; })
                 : [];
             
             // Determine changes to make

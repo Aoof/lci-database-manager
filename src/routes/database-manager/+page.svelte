@@ -60,6 +60,18 @@
 	let isDeleteRowDialogOpen = false;
 	let currentRowId: number | null = null;
 
+	function handleNextPage() {
+		tableActions.setPagination(currentPage + 1);
+	}
+
+	function handlePrevPage() {
+		tableActions.setPagination(currentPage - 1);
+	}
+
+	function handleSetPage(page: number) {
+		tableActions.setPagination(page);
+	}
+
 	function handleEditRow(rowId: number) {
 		const row = $tableStore.selectedTable?.rows.find(row => row.id === rowId);
 		if (row) {
@@ -249,7 +261,7 @@
 				>
 					<Pagination.Content>
 						<Pagination.Item>
-							<Pagination.PrevButton />
+							<Pagination.PrevButton on:click={handlePrevPage} />
 						</Pagination.Item>
 						{#each pages as page (page.key)}
 							{#if page.type === "ellipsis"}
@@ -258,14 +270,14 @@
 								</Pagination.Item>
 							{:else}
 								<Pagination.Item class={localPage === page.value ? "" : "hidden"}>
-									<Pagination.Link {page} isActive={localPage === page.value}>
+									<Pagination.Link {page} isActive={localPage === page.value} on:click={() => handleSetPage(page.value)}>
 										{page.value}
 									</Pagination.Link>
 								</Pagination.Item>
 							{/if}
 						{/each}
 						<Pagination.Item>
-							<Pagination.NextButton />
+							<Pagination.NextButton on:click={handleNextPage} />
 						</Pagination.Item>
 					</Pagination.Content>
 				</Pagination.Root>

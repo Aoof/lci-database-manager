@@ -13,9 +13,10 @@
 	import { tableStore, tableActions } from '$lib/stores/tableStore';
 	import { onMount } from 'svelte';
 	import { ColumnTypes } from '$lib/lib/utils';
+	import type { Column } from '$lib/types';
 
 	export let tableName: string = '';
-	export let columns: Array<{ name: string; type: string; isPrimaryKey?: boolean; foreignKey?: { table: string; column: string } }> = [];
+	export let columns: Column[] = [];
 	export let disabled: boolean = false;
 
 	// This is now just a callback for component users that need to know when a table is added/updated
@@ -48,12 +49,16 @@
 
 	let columnName: string = '';
 	let columnType: string = '';
+
 	let selectedFkTable: Selected<string> = { value: '' };
 	let selectedFkColumn: Selected<string> = { value: '' };
 	let availableFkColumns: Array<{ name: string; type: string }> = [];
 	let showFkDialog: boolean = false;
 	let currentColumnForFk: string = '';
 	let _selectedColumnType: Selected<string> = { value: '' };
+
+	$: tableName = tableName.replaceAll(' ', '_');
+	$: columnName = columnName.replaceAll(' ', '_');
 	$: columnType = _selectedColumnType.value;
 
     // Validates table name
@@ -108,7 +113,7 @@
         }
         
         const colName = columnName; // Store column name before clearing it
-        columns = [...columns, { name: columnName, type: columnType, isPrimaryKey: false }];
+		columns = [...columns, { key: colName, name: colName, type: columnType, isPrimaryKey: false, foreignKey: undefined }];
         columnName = '';
         _selectedColumnType = { value: '' };
         toast.success(`Column "${colName}" added successfully`);
@@ -133,8 +138,12 @@
             // Store columns have key, name, type, sortable, and constraint properties
             // We need name, type, and constraint information for our dialog
             columns = columns.map((col) => ({
+				key: col.name ?? '',
                 name: col.name ?? '',
-                type: col.type ?? ''
+                type: col.type ?? '',
+
+				isPrimaryKey: col.isPrimaryKey?? false,
+                foreignKey: col.foreignKey?? undefined
             }));
         }
     }
@@ -179,8 +188,6 @@
 			if (editTable && $tableStore.selectedTable) {
 				await tableActions.selectTable(tableName);
 			}
-			
-			toast.success(result.message || `Table ${editTable ? 'updated' : 'created'} successfully`);
 			
 			// Call the callback if provided (for backward compatibility)
 			if (onAddTable) {

@@ -4,12 +4,18 @@
 	import { Toaster } from "$lib/components/ui/sonner";
 	import { Button } from '$lib/components/ui/button';
 	import { Separator } from '$lib/components/ui/separator';
+	import type { ToasterProps } from 'svelte-sonner';
 
 	let { children } = $props();
+	let toastOptions : ToasterProps = {
+		visibleToasts: 6,
+	}
 </script>
 
 <ModeWatcher />
-<Toaster />
+<Toaster 
+	{...toastOptions}
+/>
 
 <nav>
 	<ul class="flex justify-center gap-4 py-6">

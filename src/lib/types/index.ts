@@ -7,6 +7,8 @@ export interface Column {
   name: string; // Display name for the header
   type: string; // Data type (for potential formatting)
   sortable?: boolean; // Flag if the column can be sorted
+  isPrimaryKey?: boolean; 
+  foreignKey?: { table: string; column: string }
 }
 
 export interface Row {
