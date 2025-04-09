@@ -132,14 +132,13 @@ export const tableActions = {
 			const offset = state.pagination.itemsPerPage * (state.pagination.currentPage - 1);
 			_selectedTable.rows = (await databaseStore.getRows(tableName, state.pagination.itemsPerPage, offset))?.data as Row[];
 
-			let _totalItems = (await databaseStore.getRowsLength(tableName))?.data[0] || _selectedTable.rows.length;
+			let _totalItems = Number.parseInt((await databaseStore.getRowsLength(tableName))?.data[0]?.count) || _selectedTable.rows.length;
 			
 			tableStore.update((state) => ({
 				...state,
 				selectedTable: _selectedTable,
 				pagination: {
-					currentPage: state.pagination.currentPage,
-					itemsPerPage: state.pagination.itemsPerPage,
+					...state.pagination,
 					totalItems: _totalItems
 				}
 			}));
