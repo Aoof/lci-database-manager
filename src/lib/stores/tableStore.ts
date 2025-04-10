@@ -1,22 +1,14 @@
 import { writable, get } from 'svelte/store';
 import { databaseStore } from '$lib/stores/databaseStore';
-import type { Column, DbTable, Row } from '$lib/types';
+import type { Column, DbTable, Row, TableState } from '$lib/types';
 import { toast } from 'svelte-sonner';
-import { DbCommand } from '$lib/components/db-command';
-
-export interface TableState {
-	selectedTable: DbTable | null;
-	sortConfig: { key: string; direction: 'asc' | 'desc' | null };
-	pagination: {
-		currentPage: number;
-		itemsPerPage: number;
-		totalItems: number;
-	};
-}
+import { dbCommand } from '$lib/components/db-command';
 
 const initialState: TableState = {
 	selectedTable: null,
 	sortConfig: { key: '', direction: null },
+	filterProps: {
+	},
 	pagination: {
 		currentPage: 1,
 		itemsPerPage: 10,
@@ -36,16 +28,7 @@ export const tableActions = {
 			const result = await response.json();
 
 			if (response.ok) {
-				if (result.query) {
-					toast(DbCommand, {
-						duration: 5000,
-						componentProps: {
-							code: result.query,
-							title: 'SQL Query',
-							language: 'sql'
-						}
-					});
-				}
+				if (result.query) { dbCommand(result.query); }
 
 				databaseStore.getTables();
 				tableStore.update(state => ({
@@ -60,7 +43,7 @@ export const tableActions = {
 			toast.error('An error occurred while deleting the table');
 		}
 	},
-	
+
 	addRow: async (values: Record<string, any>) => {
 		try {
 			const state = get(tableStore);
@@ -82,16 +65,7 @@ export const tableActions = {
 
 			if (response.ok) {
 				// Show the SQL query using the DbCommand component
-				if (result.query) {
-					toast(DbCommand, {
-						duration: 5000,
-						componentProps: {
-							code: result.query,
-							title: 'SQL Query',
-							language: 'sql'
-						}
-					});
-				}
+				if (result.query) { dbCommand(result.query); }
 
 				// Refresh the table data to include the new row
 				await tableActions.selectTable(tableName);
@@ -121,7 +95,7 @@ export const tableActions = {
 			for (const element of tableData.data) {
 				_columns.push({
 					key: element.column_name,
-					name: element.column_name,
+					name: (element.column_name as string).replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase()),
 					type: element.data_type,
 					sortable: true
 				})
@@ -133,7 +107,7 @@ export const tableActions = {
 			_selectedTable.rows = (await databaseStore.getRows(tableName, state.pagination.itemsPerPage, offset))?.data as Row[];
 
 			let _totalItems = Number.parseInt((await databaseStore.getRowsLength(tableName))?.data[0]?.count) || _selectedTable.rows.length;
-			
+
 			tableStore.update((state) => ({
 				...state,
 				selectedTable: _selectedTable,
@@ -221,16 +195,7 @@ export const tableActions = {
 
 			if (response.ok) {
 				// Show the SQL query using the DbCommand component
-				if (result.query) {
-					toast(DbCommand, {
-						duration: 5000,
-						componentProps: {
-							code: result.query,
-							title: 'SQL Query',
-							language: 'sql'
-						}
-					});
-				}
+				if (result.query) { dbCommand(result.query); }
 
 				// Update the table data by removing the deleted row
 				tableStore.update((state) => ({
@@ -281,16 +246,7 @@ export const tableActions = {
 
 			if (response.ok) {
 				// Show the SQL query using the DbCommand component
-				if (result.query) {
-					toast(DbCommand, {
-						duration: 5000,
-						componentProps: {
-							code: result.query,
-							title: 'SQL Query',
-							language: 'sql'
-						}
-					});
-				}
+				if (result.query) { dbCommand(result.query); }
 
 				// Update the table data by updating the modified row
 				tableStore.update((state) => ({

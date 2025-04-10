@@ -4,21 +4,23 @@
 	// Import necessary Svelte and shadcn-svelte components
 	import { TableDialog } from '$lib/components/table-dialog';
 	import { RowDialog } from '$lib/components/row-dialog';
+	import { FilterDialog } from '$lib/components/filter-dialog';
 	import { Button } from '$lib/components/ui/button';
 	import * as Sheet from '$lib/components/ui/sheet';
 	import * as Table from '$lib/components/ui/table';
 	import * as Select from '$lib/components/ui/select';
 	import * as Pagination from '$lib/components/ui/pagination';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
+	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { toast } from 'svelte-sonner';
-	import { CaretDown, CaretUp, CaretSort, Pencil2, Trash } from 'svelte-radix';
-	
+	import { CaretDown, CaretUp, CaretSort, Pencil2, Trash, MagnifyingGlass } from 'svelte-radix';
+
 	// Import stores
 	import { databaseStore } from '$lib/stores/databaseStore';
 	import { tableStore, tableActions } from '$lib/stores/tableStore';
 	import { onMount } from 'svelte';
 	import type { Row } from '$lib/types';
-	
+
 	// Load tables on component mount
 	onMount(() => {
 		databaseStore.getTables();
@@ -27,14 +29,14 @@
 	// Computed properties
 	$: selectedTableName = $tableStore.selectedTable?.name;
 	$: sortConfig = $tableStore.sortConfig;
-	$: currentPage = $tableStore.pagination.currentPage;
 	$: itemsPerPage = $tableStore.pagination.itemsPerPage;
 	$: totalItems = $tableStore.pagination.totalItems;
-	
+
 	// Dialog states
 	let isDeleteTableDialogOpen = false;
 	let isAddRowDialogOpen = false;
 	let isEditRowDialogOpen = false;
+	let isFilterDialogOpen = false;
 	let currentRowData: Row | null = null;
 
 	// Computed property for sorted rows
@@ -148,7 +150,12 @@
 				</Select.Root>
 			</div>
 
-			<div class="flex flex-wrap gap-2">
+			<Button variant="ghost" on:click={() => isFilterDialogOpen = true} class="hover:bg-input/100 w-full rounded bg-input/20">
+				<MagnifyingGlass class="h-4 w-4 mr-2" />
+				Filter
+			</Button>
+
+			<div class="flex gap-2">
 				<TableDialog />
 				<TableDialog tableName={$tableStore.selectedTable?.name} columns={$tableStore.selectedTable?.columns} editTable={true} disabled={!selectedTableName} />
 				<Button variant="destructive" on:click={handleDeleteTable} disabled={!selectedTableName}>
@@ -190,12 +197,37 @@
 											on:click={() => handleSort(column.key)}
 										>
 											{column.name}
+											{#if column.isPrimaryKey}
+												<Tooltip.Root>
+													<Tooltip.Trigger>
+														<Button variant="ghost" size="icon" class="w-full text-xs text-muted-foreground capitalize h-8 w-8 bg-chart-2/80">
+															PK
+														</Button>
+													</Tooltip.Trigger>
+													<Tooltip.Content>
+														{selectedTableName}.PrimaryKey
+													</Tooltip.Content>
+												</Tooltip.Root>
+											{/if}
+
+											{#if column.foreignKey}
+												<Tooltip.Root>
+													<Tooltip.Trigger>
+														<Button variant="ghost" size="icon" class="w-full text-xs text-muted-foreground capitalize h-8 w-8 bg-chart-2/80">
+															FK
+														</Button>
+													</Tooltip.Trigger>
+													<Tooltip.Content>
+														{column.foreignKey.table}.{column.foreignKey.column}
+													</Tooltip.Content>
+												</Tooltip.Root>	
+											{/if}
 
 											{#if sortConfig.key === column.key}
 												{#if sortConfig.direction === 'asc'}
-													<CaretUp class="ml-2 h-4 w-4" />
-												{:else}
 													<CaretDown class="ml-2 h-4 w-4" />
+												{:else}
+													<CaretUp class="ml-2 h-4 w-4" />
 												{/if}
 											{:else}
 												<CaretSort class="ml-2 h-4 w-4 opacity-50" />
@@ -318,6 +350,14 @@
 			</AlertDialog.Footer>
 		</AlertDialog.Content>
 	</AlertDialog.Root>
+
+	<FilterDialog
+		bind:isOpen={isFilterDialogOpen}
+		bind:filterProps={$tableStore.filterProps}
+		onClose={() => {
+			isFilterDialogOpen = false;
+		}}
+	/>
 
 	<RowDialog
 		bind:isOpen={isEditRowDialogOpen}

@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 import { toast } from 'svelte-sonner';
-import { DbCommand } from '$lib/components/db-command';
+import { dbCommand } from '$lib/components/db-command';
 import type { Column } from '$lib/types';
 
 // Loading state store
@@ -25,16 +25,8 @@ export const databaseOperations = {
 
             if (response.ok) {
                 // Show the SQL query using the DbCommand component
-                if (result.query) {
-                    toast(DbCommand, {
-                        duration: 5000,
-                        componentProps: {
-                            code: result.query,
-                            title: 'SQL Query',
-                            language:'sql'
-                        }
-                    })
-                }
+                if (result.query) { dbCommand(result.query); }
+
                 return { success: true, message: result.message };
             } else {
                 return { success: false, message: result.error || 'Failed to create table' };
@@ -117,16 +109,7 @@ export const databaseOperations = {
             
             if (response.ok) {
                 // Show the SQL query using the DbCommand component
-                if (result.query) {
-                    toast(DbCommand, {
-                        duration: 5000,
-                        componentProps: {
-                            code: result.query,
-                            title: 'SQL Query',
-                            language:'sql'
-                        } 
-                    })
-                }
+                if (result.query) { dbCommand(result.query); }
                 return { success: true, message: result.message };
             } else {
                 return { success: false, message: result.error || 'Failed to update table' };

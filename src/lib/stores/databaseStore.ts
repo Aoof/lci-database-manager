@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
 import { toast } from 'svelte-sonner';
-import { DbCommand } from '$lib/components/db-command';
+import { dbCommand } from '$lib/components/db-command';
+import type { Column, Row } from '$lib/types';
 
 export interface DatabaseState {
 	tables: {
@@ -53,16 +54,7 @@ export const databaseStore = {
 			database.update((state) => ({ ...state, tables: _tables, isLoading: false }));
 
 			// Show the SQL query using the DbCommand component
-			if (result.query) {
-                toast(DbCommand, {
-                    duration: 5000,
-                    componentProps: {
-                        code: result.query,
-                        title: 'SQL Query',
-                        language:'sql'
-                    }
-                })
-			}
+			if (result.query) { dbCommand(result.query) }
 		} catch (error) {
 			database.update((state) => ({ ...state, error: 'Failed to load tables', isLoading: false }));
 		}
@@ -105,16 +97,7 @@ export const databaseStore = {
 			const result = await response.json();
 
 			// Show the SQL query using the DbCommand component
-			if (result.query) {
-                toast(DbCommand, {
-                    duration: 5000,
-                    componentProps: {
-                        code: result.query,
-                        title: 'SQL Query',
-                        language:'sql'
-                    }
-                })
-            }
+			if (result.query) { dbCommand(result.query); }
 
 			return result;
 		} catch (error) {

@@ -12,7 +12,6 @@ export interface Column {
 }
 
 export interface Row {
-  id: number;
   [key: string]: any; // Allow other properties
 }
 
@@ -20,4 +19,17 @@ export interface DbTable {
   name: string;
   columns: Column[];
   rows: Row[];
+}
+
+export interface TableState {
+	selectedTable: DbTable | null;
+	sortConfig: { key: string; direction: 'asc' | 'desc' | null };
+	filterProps: {
+		[key: string]: string;
+	},
+	pagination: {
+		currentPage: number;
+		itemsPerPage: number;
+		totalItems: number;
+	};
 }

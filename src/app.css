@@ -1,7 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 @import 'tailwindcss';
 @plugin "@tailwindcss/typography";
 
 @import "tw-animate-css";
+
 /*
   ---break---
 */
@@ -151,12 +153,18 @@
   ---break---
 */
 
+
 :root {
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.129 0.042 264.695);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.129 0.042 264.695);
+  --normal-bg: oklch(22.517% 0.02813 259.92);
+  --normal-border: oklch(22.517% 0.02813 259.92);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.129 0.042 264.695);
   --primary: oklch(0.208 0.042 265.755);
@@ -206,7 +214,9 @@
   --input: oklch(1 0 0 / 15%);
   --muted: oklch(0.279 0.041 260.031);
   --muted-foreground: oklch(0.704 0.04 256.788);
-  --popover: oklch(14.149% 0.00924 18.302);
+  --normal-bg: oklch(0.208 0.042 265.755);
+  --normal-border: oklch(0.208 0.042 265.755);
+  --popover: oklch(22.517% 0.02813 259.92);
   --popover-foreground: oklch(0.984 0.003 247.858);
   --primary: oklch(0.929 0.013 255.508);
   --primary-foreground: oklch(0.208 0.042 265.755);
