@@ -45,12 +45,12 @@ export async function POST({ request, url }) {
 			}
 			case 'FOREIGN_KEY': {
 				return format(
-					'ALTER TABLE %I ADD CONSTRAINT %I FOREIGN KEY (%s) REFERENCES %I (%s)',
+					'ALTER TABLE %I ADD CONSTRAINT %I FOREIGN KEY (%I) REFERENCES %I (%I)',
 					table,
-					`${table}_${constraint.columns.join('_')}_FK`,
-					constraint.columns.map((col) => format('%I', col)).join(', '),
+					`${table}_${constraint.column}_FK`,
+					constraint.column,
 					constraint.foreignTable,
-					constraint.foreignColumns.map((col) => format('%I', col)).join(', ')
+					constraint.foreignColumn,
 				);
 			}
 			case 'UNIQUE':

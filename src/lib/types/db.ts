@@ -1,9 +1,8 @@
+import type { Column } from ".";
+
 // Type for the JSON payload expected by the POST method in table creation
 export interface CreateTablePayload {
-	columns: Array<{
-		name: string; // Column name
-		type: string; // Column type (e.g., "VARCHAR(255)", "SERIAL PRIMARY KEY")
-	}>;
+	columns: Array<Column>;
 }
 
 // Type for the JSON payload expected by the PUT method in table updates
@@ -53,7 +52,7 @@ export interface FilterPayload {
 
 type Constraint =
 	| { type: 'PRIMARY_KEY'; columns: string[] }
-	| { type: 'FOREIGN_KEY'; columns: string[]; foreignTable: string; foreignColumns: string[] }
+	| { type: 'FOREIGN_KEY'; column: string; foreignTable: string; foreignColumn: string }
 	| { type: 'NOT_NULL'; columns: string[] }
 	| { type: 'CHECK'; checkString: string }
 	| { type: 'UNIQUE'; column: string };

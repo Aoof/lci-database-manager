@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Selected } from 'bits-ui';
-	
+
 	// Import necessary Svelte and shadcn-svelte components
 	import { TableDialog } from '$lib/components/table-dialog';
 	import { RowDialog } from '$lib/components/row-dialog';
@@ -131,7 +131,7 @@
 		<div class="flex flex-col sm:flex-row justify-between items-start gap-4">
 			<div class="flex items-center gap-2">
 				<span class="font-medium">Table:</span>
-				<Select.Root onSelectedChange={handleSelectTable}>
+				<Select.Root onSelectedChange={handleSelectTable} >
 					<Select.Trigger class="w-[180px]">
 						<Select.Value placeholder="Select a table" />
 					</Select.Trigger>
@@ -188,15 +188,15 @@
 				<Table.Root>
 					<Table.Header>
 						<Table.Row>
-							{#each $tableStore.selectedTable?.columns || [] as column (column.key)}
+							{#each $tableStore.selectedTable?.columns || [] as column (column.name)}
 								<Table.Head>
 									{#if column.sortable}
 										<Button
 											variant="ghost"
 											class="w-full justify-start px-2 hover:bg-secondary hover:text-accent-foreground"
-											on:click={() => handleSort(column.key)}
+											on:click={() => handleSort(column.name)}
 										>
-											{column.name}
+											{column.name.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase())}
 											{#if column.isPrimaryKey}
 												<Tooltip.Root>
 													<Tooltip.Trigger>
@@ -223,7 +223,7 @@
 												</Tooltip.Root>	
 											{/if}
 
-											{#if sortConfig.key === column.key}
+											{#if sortConfig.name === column.name}
 												{#if sortConfig.direction === 'asc'}
 													<CaretDown class="ml-2 h-4 w-4" />
 												{:else}
@@ -244,9 +244,9 @@
 					<Table.Body>
 						{#each sortedRows as row (row.id)}
 							<Table.Row>
-								{#each $tableStore.selectedTable?.columns || [] as column (column.key)}
+								{#each $tableStore.selectedTable?.columns || [] as column (column.name)}
 									<Table.Cell>
-										{row[column.key] ?? 'NULL'}
+										{row[column.name] ?? 'NULL'}
 									</Table.Cell>
 								{/each}
 								<Table.Cell class="text-right">

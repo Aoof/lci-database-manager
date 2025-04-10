@@ -57,8 +57,8 @@
 	let currentColumnForFk: string = '';
 	let _selectedColumnType: Selected<string> = { value: '' };
 
-	$: tableName = tableName.replaceAll(' ', '_');
-	$: columnName = columnName.replaceAll(' ', '_');
+	$: tableName = tableName?.replaceAll(' ', '_');
+	$: columnName = columnName?.replaceAll(' ', '_');
 	$: columnType = _selectedColumnType.value;
 
     // Validates table name
@@ -113,7 +113,7 @@
         }
         
         const colName = columnName; // Store column name before clearing it
-		columns = [...columns, { key: colName, name: colName, type: columnType, isPrimaryKey: false, foreignKey: undefined }];
+		columns = [...columns, { name: colName, type: columnType, isPrimaryKey: false, foreignKey: undefined }];
         columnName = '';
         _selectedColumnType = { value: '' };
         toast.success(`Column "${colName}" added successfully`);
@@ -138,7 +138,6 @@
             // Store columns have key, name, type, sortable, and constraint properties
             // We need name, type, and constraint information for our dialog
             columns = columns.map((col) => ({
-				key: col.name ?? '',
                 name: col.name ?? '',
                 type: col.type ?? '',
 

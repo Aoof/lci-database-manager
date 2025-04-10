@@ -23,7 +23,7 @@
 		<Separator orientation="vertical" class="h-8" />
 		<Button class="text-sm lg:text-lg" variant="link" href="/report">Report</Button>
 		<Separator orientation="vertical" class="h-8" />
-		<Button class="text-sm lg-text-lg" variant="secondary" href="/database-manager">Database Manager</Button>
+		<Button class="text-sm lg:text-lg" variant="secondary" href="/database-manager">Database Manager</Button>
 	</ul>
 </nav>
 

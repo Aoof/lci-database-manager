@@ -6,7 +6,7 @@ import { dbCommand } from '$lib/components/db-command';
 
 const initialState: TableState = {
 	selectedTable: null,
-	sortConfig: { key: '', direction: null },
+	sortConfig: { name: '', direction: null },
 	filterProps: {
 	},
 	pagination: {
@@ -31,10 +31,7 @@ export const tableActions = {
 				if (result.query) { dbCommand(result.query); }
 
 				databaseStore.getTables();
-				tableStore.update(state => ({
-					...state,
-					selectedTable: null
-				}));
+				tableActions.unSelectTable();
 			} else {
 				toast.error(result.error || 'Failed to delete table');
 			}
@@ -81,6 +78,7 @@ export const tableActions = {
 			return { success: false, message: 'An error occurred while adding the row' };
 		}
 	},
+	unSelectTable: () => tableStore.update((_) => initialState),
 	selectTable: async (tableName: string) => {
 		try {
 			let _selectedTable : DbTable = {
@@ -94,8 +92,7 @@ export const tableActions = {
 			let _columns : Column[] = [];
 			for (const element of tableData.data) {
 				_columns.push({
-					key: element.column_name,
-					name: (element.column_name as string).replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase()),
+					name: element.column_name,
 					type: element.data_type,
 					sortable: true
 				})
@@ -120,24 +117,23 @@ export const tableActions = {
 			console.error('Error selecting table:', error);
 		}
 	},
-
-	sortTable: (key: string) => {
+	sortTable: (name: string) => {
 		tableStore.update((state) => {
 			const newDirection =
-				state.sortConfig.key === key
+				state.sortConfig.name === name
 					? state.sortConfig.direction === 'asc'
 						? 'desc'
 						: 'asc'
 					: 'asc';
 
 			const sortedRows = [...(state.selectedTable?.rows || [])].sort((a, b) => {
-				if (newDirection === 'asc') return a[key] > b[key] ? 1 : -1;
-				return a[key] < b[key] ? 1 : -1;
+				if (newDirection === 'asc') return a[name] > b[name] ? 1 : -1;
+				return a[name] < b[name] ? 1 : -1;
 			});
 
 			return {
 				...state,
-				sortConfig: { key, direction: newDirection },
+				sortConfig: { name, direction: newDirection },
 				selectedTable: state.selectedTable
 					? {
 							...state.selectedTable,

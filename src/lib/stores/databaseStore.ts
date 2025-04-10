@@ -1,15 +1,11 @@
 import { writable } from 'svelte/store';
-import { toast } from 'svelte-sonner';
 import { dbCommand } from '$lib/components/db-command';
 import type { Column, Row } from '$lib/types';
 
 export interface DatabaseState {
 	tables: {
 		name: string;
-		columns: {
-			name: string;
-			type: string;
-		}[];
+		columns: Column[];
 	}[];
 	isLoading: boolean;
 	error: string | null;
@@ -34,7 +30,7 @@ export const databaseStore = {
 			let _tables = [];
 
 			for (const { table_name } of result.data) {
-				let _columns = [];
+				let _columns : Column[] = [];
 
 				const tableData = await databaseStore.getTable(table_name);
 
