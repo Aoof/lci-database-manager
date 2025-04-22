@@ -57,6 +57,7 @@
 		"highlight.js": "^11.11.1",
 		"lucide-react": "^0.485.0",
 		"marked": "^15.0.7",
+		"mermaid": "^11.6.0",
 		"pg-format": "^1.0.4",
 		"svelte-radix": "^2.0.1",
 		"tw-animate-css": "^1.2.5"

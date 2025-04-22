@@ -1,24 +1,27 @@
 <script lang="ts">
-    import { onMount, tick } from 'svelte';
+    import { onMount } from 'svelte';
     import hljs from 'highlight.js';
     import { Progress } from '$lib/components/ui/progress';
     import "highlight.js/styles/atom-one-dark-reasonable.css";
     import { marked } from 'marked';
-    import mermaid from 'mermaid';
-
+    // Remove the direct mermaid import
+    
     import reportMarkdown from './report.md?raw';
 
     let reportHtml: string;
-
     let isLoading = true;
-
     let diagram_index = 0;
+    let mermaid: any;
 
     onMount(async () => {
         isLoading = true;
+        
+        // Import mermaid dynamically
+        mermaid = (await import('mermaid')).default;
+        mermaid.initialize({ startOnLoad: true, darkMode: true, theme: 'dark' });
+        
         reportHtml = await marked.parse(reportMarkdown);
 
-        await tick();
         document.querySelectorAll('pre code').forEach(async (block : Element) => {
             if (block.classList.contains('language-mermaid')) {
                 const res = await mermaid.render("mermaid-diagram-" + ++diagram_index, block.innerHTML, block);
@@ -31,8 +34,6 @@
             }
             hljs.highlightElement(block as HTMLElement);
         });
-
-        mermaid.initialize({ startOnLoad: true, darkMode: true, theme: 'dark' });
 
         isLoading = false;
     }) 
