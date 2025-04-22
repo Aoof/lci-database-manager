@@ -27,35 +27,47 @@ This report analyzes the database schema implemented in [final-script.sql](/fina
 The 3NF-compliant schema implements these core tables:
 
 ```sql
--- Customers with NOT NULL constraints
 CREATE TABLE Customers (
-    customer_id NUMBER(8) PRIMARY KEY,
-    first_name VARCHAR2(50) NOT NULL,
-    last_name VARCHAR2(50) NOT NULL,
-    email VARCHAR2(100) UNIQUE NOT NULL,
+    customer_id NUMBER(8) CONSTRAINT customers_customer_id_pk PRIMARY KEY,
+    first_name VARCHAR2(50) CONSTRAINT customers_first_name_nn NOT NULL,
+    last_name VARCHAR2(50) CONSTRAINT customers_last_name_nn NOT NULL,
+    email VARCHAR2(100) CONSTRAINT customers_email_uq UNIQUE CONSTRAINT customers_email_nn NOT NULL,
     phone VARCHAR2(15),
     address VARCHAR2(255),
     created_at DATE DEFAULT SYSDATE
 );
 
--- Products with foreign key constraints
-CREATE TABLE Products (
-    product_id NUMBER(8) PRIMARY KEY,
-    product_name VARCHAR2(100) NOT NULL,
-    category_id NUMBER(2) NOT NULL REFERENCES Categories,
-    supplier_id NUMBER(5) REFERENCES Suppliers,
-    price NUMBER(10,2) CHECK(price > 0),
-    stock_quantity NUMBER(6) DEFAULT 0 CHECK(stock_quantity >= 0),
-    created_at DATE DEFAULT SYSDATE
+CREATE TABLE Categories (
+    category_id NUMBER(2) CONSTRAINT categories_category_id_pk PRIMARY KEY,
+    category_name VARCHAR2(100) CONSTRAINT categories_category_name_nn NOT NULL,
+    description VARCHAR2(255)
 );
 
--- Orders with status enumeration
+CREATE TABLE Suppliers (
+    supplier_id NUMBER(5) CONSTRAINT suppliers_supplier_id_pk PRIMARY KEY,
+    supplier_name VARCHAR2(100) CONSTRAINT suppliers_supplier_name_nn NOT NULL,
+    contact_info VARCHAR2(255)
+);
+
+CREATE TABLE Products (
+    product_id NUMBER(8) CONSTRAINT products_product_id_pk PRIMARY KEY,
+    product_name VARCHAR2(100) CONSTRAINT products_product_name_nn NOT NULL,
+    category_id NUMBER(2) CONSTRAINT products_category_id_nn NOT NULL,
+    supplier_id NUMBER(5),
+    price NUMBER(10,2) CONSTRAINT products_price_ck CHECK(price > 0),
+    stock_quantity NUMBER(6) DEFAULT 0 CONSTRAINT products_stock_quantity_ck CHECK(stock_quantity >= 0),
+    created_at DATE DEFAULT SYSDATE,
+    CONSTRAINT products_category_id_fk FOREIGN KEY (category_id) REFERENCES Categories(category_id),
+    CONSTRAINT products_supplier_id_fk FOREIGN KEY (supplier_id) REFERENCES Suppliers(supplier_id)
+);
+
 CREATE TABLE Orders (
-    order_id NUMBER(8) PRIMARY KEY,
-    customer_id NUMBER(8) NOT NULL REFERENCES Customers,
+    order_id NUMBER(8) CONSTRAINT orders_order_id_pk PRIMARY KEY,
+    customer_id NUMBER(8) CONSTRAINT orders_customer_id_nn NOT NULL,
     order_date DATE DEFAULT SYSDATE,
-    status VARCHAR2(20) CHECK(status IN ('Pending', 'Shipped', 'Delivered', 'Cancelled')),
-    total NUMBER(10,2) DEFAULT 0
+    status VARCHAR2(20) CONSTRAINT orders_status_ck CHECK(status IN ('Pending', 'Shipped', 'Delivered', 'Cancelled')),
+    total NUMBER(10,2) DEFAULT 0,
+    CONSTRAINT orders_customer_id_fk FOREIGN KEY (customer_id) REFERENCES Customers(customer_id)
 );
 ```
 
