@@ -69,6 +69,23 @@ CREATE TABLE Orders (
     total NUMBER(10,2) DEFAULT 0,
     CONSTRAINT orders_customer_id_fk FOREIGN KEY (customer_id) REFERENCES Customers(customer_id)
 );
+
+CREATE TABLE Order_Details (
+    order_id NUMBER(8) CONSTRAINT order_details_order_id_nn NOT NULL,
+    product_id NUMBER(8) CONSTRAINT order_details_product_id_nn NOT NULL,
+    quantity NUMBER(4) CONSTRAINT order_details_quantity_nn NOT NULL CONSTRAINT order_details_quantity_ck CHECK(quantity > 0),
+    unit_price NUMBER(10,2) CONSTRAINT order_details_unit_price_nn NOT NULL,
+    CONSTRAINT order_details_pk PRIMARY KEY (order_id, product_id),
+    CONSTRAINT order_details_order_id_fk FOREIGN KEY (order_id) REFERENCES Orders(order_id),
+    CONSTRAINT order_details_product_id_fk FOREIGN KEY (product_id) REFERENCES Products(product_id)
+);
+
+CREATE TABLE System_Users (
+    user_id NUMBER(5) CONSTRAINT system_users_user_id_pk PRIMARY KEY,
+    username VARCHAR2(50) CONSTRAINT system_users_username_uq UNIQUE CONSTRAINT system_users_username_nn NOT NULL,
+    password VARCHAR2(255) CONSTRAINT system_users_password_nn NOT NULL,
+    role VARCHAR2(20) CONSTRAINT system_users_role_ck CHECK(role IN ('Admin', 'Manager', 'Sales'))
+);
 ```
 
 ### Entity-Relationship Diagram
