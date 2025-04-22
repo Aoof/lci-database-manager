@@ -42,7 +42,7 @@ export interface FilterPayload {
 	having?: {
 		func: 'MAX' | 'MIN' | 'AVG' | 'SUM' | 'COUNT';
 		column: string;
-		operator: '=' | '!=' | '<' | '<=' | '>' | '>=';
+		operator: '=' | '!=' | '<' | '<=' | '>' | '>='; 
 		value: number;
 	}; // HAVING clause for filtering groups
 	orderBy?: { column: string; direction: 'ASC' | 'DESC' }; // Ordering
@@ -50,7 +50,7 @@ export interface FilterPayload {
 	offset?: number; // Pagination offset
 }
 
-type Constraint =
+export type Constraint =
 	| { type: 'PRIMARY_KEY'; columns: string[] }
 	| { type: 'FOREIGN_KEY'; column: string; foreignTable: string; foreignColumn: string }
 	| { type: 'NOT_NULL'; columns: string[] }

@@ -1,14 +1,13 @@
 import { writable, get } from 'svelte/store';
 import { databaseStore } from '$lib/stores/databaseStore';
-import type { Column, DbTable, Row, TableState } from '$lib/types';
+import type { DbTable, Row, TableState } from '$lib/types'; // Removed unused Column import
 import { toast } from 'svelte-sonner';
 import { dbCommand } from '$lib/components/db-command';
 
 const initialState: TableState = {
 	selectedTable: null,
 	sortConfig: { name: '', direction: null },
-	filterProps: {
-	},
+	filterProps: {},
 	pagination: {
 		currentPage: 1,
 		itemsPerPage: 10,
@@ -33,7 +32,7 @@ export const tableActions = {
 				databaseStore.getTables();
 				tableActions.unSelectTable();
 			} else {
-				toast.error(result.error || 'Failed to delete table');
+				toast.error(result.error ?? 'Failed to delete table'); // Use ??
 			}
 		} catch (error) {
 			console.error('Error deleting table:', error);
@@ -61,16 +60,12 @@ export const tableActions = {
 			const result = await response.json();
 
 			if (response.ok) {
-				// Show the SQL query using the DbCommand component
 				if (result.query) { dbCommand(result.query); }
-
-				// Refresh the table data to include the new row
 				await tableActions.selectTable(tableName);
-
-				return { success: true, message: result.message || 'Row added successfully' };
+				return { success: true, message: result.message ?? 'Row added successfully' }; // Use ??
 			} else {
-				toast.error(result.error || 'Failed to add row');
-				return { success: false, message: result.error || 'Failed to add row' };
+				toast.error(result.error ?? 'Failed to add row'); // Use ??
+				return { success: false, message: result.error ?? 'Failed to add row' }; // Use ??
 			}
 		} catch (error) {
 			console.error('Error adding row:', error);
@@ -78,57 +73,70 @@ export const tableActions = {
 			return { success: false, message: 'An error occurred while adding the row' };
 		}
 	},
+
 	unSelectTable: () => tableStore.update((_) => initialState),
+
 	selectTable: async (tableName: string) => {
 		try {
-			let _selectedTable : DbTable = {
-				name: tableName,
-				columns: [],
-				rows: []	
-			}
-			const tableData = await databaseStore.getTable(tableName);
-			_selectedTable.name = tableName;
+			const dbState = get(databaseStore);
+			let tableFromDbStore = dbState.tables.find(t => t.name === tableName);
 
-			let _columns : Column[] = [];
-			for (const element of tableData.data) {
-				_columns.push({
-					name: element.column_name,
-					type: element.data_type,
-					sortable: true
-				})
+			if (!tableFromDbStore) {
+				console.warn(`Table ${tableName} not found in databaseStore, attempting fetch.`);
+				await databaseStore.getTables();
+				const updatedDbState = get(databaseStore);
+				tableFromDbStore = updatedDbState.tables.find(t => t.name === tableName);
+				
+				// Add check after refetch attempt
+				if (!tableFromDbStore) {
+					throw new Error(`Table ${tableName} not found after refetch.`);
+				}
 			}
-			_selectedTable.columns = _columns;
+
+			let _selectedTable: DbTable = {
+				name: tableName,
+				columns: tableFromDbStore.columns, // Now safe to access
+				rows: []
+			};
 
 			const state = get(tableStore);
 			const offset = state.pagination.itemsPerPage * (state.pagination.currentPage - 1);
-			_selectedTable.rows = (await databaseStore.getRows(tableName, state.pagination.itemsPerPage, offset))?.data as Row[];
+			const [rowsResult, countResult] = await Promise.all([
+				databaseStore.getRows(tableName, state.pagination.itemsPerPage, offset),
+				databaseStore.getRowsLength(tableName)
+			]);
 
-			let _totalItems = Number.parseInt((await databaseStore.getRowsLength(tableName))?.data[0]?.count) || _selectedTable.rows.length;
+			_selectedTable.rows = rowsResult?.data as Row[] ?? [];
+			let _totalItems = Number.parseInt(countResult?.data[0]?.count) || _selectedTable.rows.length; // Keep || here as fallback might be intended
 
-			tableStore.update((state) => ({
-				...state,
+			tableStore.update((currentState) => ({
+				...currentState,
 				selectedTable: _selectedTable,
 				pagination: {
-					...state.pagination,
-					totalItems: _totalItems
-				}
+					...currentState.pagination,
+					totalItems: _totalItems,
+					currentPage: 1
+				},
+				sortConfig: { name: '', direction: null }
 			}));
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Error selecting table:', error);
+			toast.error(error.message ?? 'Failed to select table'); 
+			tableStore.update(s => ({ ...s, selectedTable: null }));
 		}
 	},
+
 	sortTable: (name: string) => {
 		tableStore.update((state) => {
-			const newDirection =
-				state.sortConfig.name === name
-					? state.sortConfig.direction === 'asc'
-						? 'desc'
-						: 'asc'
-					: 'asc';
+			let newDirection: 'asc' | 'desc' = 'asc';
+			if (state.sortConfig.name === name) {
+				newDirection = state.sortConfig.direction === 'asc' ? 'desc' : 'asc';
+			}
 
-			const sortedRows = [...(state.selectedTable?.rows || [])].sort((a, b) => {
-				if (newDirection === 'asc') return a[name] > b[name] ? 1 : -1;
-				return a[name] < b[name] ? 1 : -1;
+			const sortedRows = [...(state.selectedTable?.rows ?? [])].sort((a, b) => { 
+				if (a[name] === b[name]) return 0;
+				const comparison = a[name] < b[name] ? -1 : 1;
+				return newDirection === 'asc' ? comparison : -comparison;
 			});
 
 			return {
@@ -145,7 +153,6 @@ export const tableActions = {
 	},
 
 	setPagination: async (page: number) => {
-		console.log('setPagination', page);
 		tableStore.update((state) => ({
 			...state,
 			pagination: {
@@ -154,11 +161,10 @@ export const tableActions = {
 			}
 		}));
 
-		// Fetch new data with updated pagination
 		const state = get(tableStore);
 		if (state.selectedTable) {
 			const offset = state.pagination.itemsPerPage * (page - 1);
-			const newRows = (await databaseStore.getRows(state.selectedTable.name, state.pagination.itemsPerPage, offset))?.data as Row[];
+			const newRows = (await databaseStore.getRows(state.selectedTable.name, state.pagination.itemsPerPage, offset))?.data as Row[] ?? []; // Use ??
 			tableStore.update((state) => ({
 				...state,
 				selectedTable: state.selectedTable ? {
@@ -190,28 +196,28 @@ export const tableActions = {
 			const result = await response.json();
 
 			if (response.ok) {
-				// Show the SQL query using the DbCommand component
 				if (result.query) { dbCommand(result.query); }
-
-				// Update the table data by removing the deleted row
-				tableStore.update((state) => ({
-					...state,
-					selectedTable: state.selectedTable
-						? {
-								...state.selectedTable,
-								rows: state.selectedTable.rows.filter((row) => row.id !== rowId)
-							}
-						: null,
-					pagination: {
-						...state.pagination,
-						totalItems: state.selectedTable ? state.selectedTable.rows.length - 1 : 0
-					}
-				}));
-
+				tableStore.update((state) => {
+					const newRows = state.selectedTable ? state.selectedTable.rows.filter((row) => row.id !== rowId) : [];
+					const newTotalItems = state.pagination.totalItems - 1;
+					return {
+						...state,
+						selectedTable: state.selectedTable
+							? {
+									...state.selectedTable,
+									rows: newRows
+								}
+							: null,
+						pagination: {
+							...state.pagination,
+							totalItems: newTotalItems > 0 ? newTotalItems : 0
+						}
+					};
+				});
 				return { success: true, message: result.message };
 			} else {
-				toast.error(result.error || 'Failed to delete row');
-				return { success: false, message: result.error || 'Failed to delete row' };
+				toast.error(result.error ?? 'Failed to delete row'); // Use ??
+				return { success: false, message: result.error ?? 'Failed to delete row' }; // Use ??
 			}
 		} catch (error) {
 			console.error('Error deleting row:', error);
@@ -230,42 +236,48 @@ export const tableActions = {
 			const tableName = state.selectedTable.name;
 			const identifier = { id: rowId };
 
+			// Remove any empty string values to avoid SQL type conversion issues
+			const cleanedValues = { ...values };
+			Object.keys(cleanedValues).forEach(key => {
+				if (cleanedValues[key] === '') {
+					cleanedValues[key] = null;
+				}
+			});
+
 			const response = await fetch(`/api/row?table=${tableName}`, {
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify({ identifier, values })
+				body: JSON.stringify({ identifier, values: cleanedValues })
 			});
 
 			const result = await response.json();
 
 			if (response.ok) {
-				// Show the SQL query using the DbCommand component
 				if (result.query) { dbCommand(result.query); }
-
-				// Update the table data by updating the modified row
 				tableStore.update((state) => ({
 					...state,
 					selectedTable: state.selectedTable
 						? {
 								...state.selectedTable,
 								rows: state.selectedTable.rows.map((row) =>
-									row.id === rowId ? { ...row, ...values } : row
+									row.id === rowId ? { ...row, ...cleanedValues } : row
 								)
 							}
 						: null
 				}));
-
 				return { success: true, message: result.message };
 			} else {
-				toast.error(result.error || 'Failed to update row');
-				return { success: false, message: result.error || 'Failed to update row' };
+				const errorMessage = result.details ? `${result.error}: ${result.details}` : result.error;
+				toast.error(errorMessage || 'Failed to update row');
+				return { success: false, message: errorMessage || 'Failed to update row' };
 			}
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Error updating row:', error);
-			toast.error('An error occurred while updating the row');
-			return { success: false, message: 'An error occurred while updating the row' };
+			const errorMessage = error.message || 'An error occurred while updating the row';
+			toast.error(errorMessage);
+			return { success: false, message: errorMessage };
 		}
 	}
 };

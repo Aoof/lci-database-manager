@@ -55,6 +55,7 @@
 	let availableFkColumns: Array<{ name: string; type: string }> = [];
 	let showFkDialog: boolean = false;
 	let currentColumnForFk: string = '';
+	let editingExistingFk: boolean = false;
 	let _selectedColumnType: Selected<string> = { value: '' };
 
 	$: tableName = tableName?.replaceAll(' ', '_');
@@ -134,28 +135,46 @@
         
         // If we're editing a table, ensure we have the correct column format
         if (editTable && tableName) {
-            // Convert columns to the expected format if they're from the store
-            // Store columns have key, name, type, sortable, and constraint properties
-            // We need name, type, and constraint information for our dialog
-            columns = columns.map((col) => ({
-                name: col.name ?? '',
-                type: col.type ?? '',
+            // Get the table data from the store to ensure we have the latest constraints
+            const tableData = $databaseStore.tables.find(t => t.name === tableName);
+            
+            if (tableData) {
+                // Make sure we're using the latest column data from the store
+                columns = tableData.columns.map((col) => ({
+                    name: col.name ?? '',
+                    type: col.type ?? '',
+                    isPrimaryKey: col.isPrimaryKey ?? false,
+                    foreignKey: col.foreignKey ?? undefined
+                }));
+            } else {
+                // Fallback to existing column data if table not found in store
+                columns = columns.map((col) => ({
+                    name: col.name ?? '',
+                    type: col.type ?? '',
 
-				isPrimaryKey: col.isPrimaryKey?? false,
-                foreignKey: col.foreignKey?? undefined
-            }));
+					isPrimaryKey: col.isPrimaryKey?? false,
+                    foreignKey: col.foreignKey?? undefined
+                }));
+            }
         }
     }
 
 	$: if (isOpen) {
-		// When dialog opens, update its state based on mode
-		updateDialogState();
-
-		// If creating a new table, reset the form
 		if (!editTable) {
 			columns = [];
 			tableName = '';
 			_selectedColumnType = { value: '' };
+		} else if (tableName) {
+			const tableData = $databaseStore.tables.find(t => t.name === tableName);
+			
+			if (tableData) {
+				columns = tableData.columns.map((col) => ({
+					name: col.name ?? '',
+					type: col.type ?? '',
+					isPrimaryKey: !!col.isPrimaryKey, // Convert to boolean with !! to ensure consistency
+					foreignKey: col.foreignKey ?? undefined
+				}));
+			}
 		}
 	}
 
@@ -215,9 +234,11 @@
 		<AlertDialog.Root bind:open={showFkDialog}>
 			<AlertDialog.Content>
 				<AlertDialog.Header>
-					<AlertDialog.Title>Select Foreign Key Reference</AlertDialog.Title>
+					<AlertDialog.Title>{editingExistingFk ? 'Modify Foreign Key Reference' : 'Add Foreign Key Reference'}</AlertDialog.Title>
 					<AlertDialog.Description>
-						Select the table and column this foreign key should reference.
+						{editingExistingFk 
+							? 'Update the foreign key reference or remove the link completely.' 
+							: 'Select the table and column this foreign key should reference.'}
 					</AlertDialog.Description>
 				</AlertDialog.Header>
 				<div class="grid gap-4 py-4">
@@ -228,6 +249,10 @@
 								if (selected?.value) {
 									const table = $databaseStore.tables.find(t => t.name === selected.value);
 									availableFkColumns = table?.columns ?? [];
+									// Clear column selection when table changes
+									if (!editingExistingFk || selectedFkTable.value !== selected.value) {
+										selectedFkColumn = { value: '' };
+									}
 								}
 							}}>
 								<Select.Trigger class="w-full" id="fk-table">
@@ -263,28 +288,57 @@
 						</div>
 					</div>
 				</div>
-				<AlertDialog.Footer>
-					<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-					<AlertDialog.Action on:click={() => {
-						if (selectedFkTable.value && selectedFkColumn.value) {
-							columns = columns.map(col => {
-								if (col.name === currentColumnForFk) {
-									return {
-										...col,
-										foreignKey: {
-											table: selectedFkTable.value,
-											column: selectedFkColumn.value
+				<AlertDialog.Footer class="flex justify-between">
+					<div>
+						{#if editingExistingFk}
+							<Button 
+								variant="destructive" 
+								on:click={() => {
+									// Remove foreign key
+									columns = columns.map(col => {
+										if (col.name === currentColumnForFk) {
+											return { ...col, foreignKey: undefined };
 										}
-									};
+										return col;
+									});
+									showFkDialog = false;
+									toast.success('Foreign key removed');
+								}}
+							>
+								Remove Link
+							</Button>
+						{/if}
+					</div>
+					<div class="flex gap-2">
+						<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+						<AlertDialog.Action 
+							on:click={() => {
+								if (selectedFkTable.value && selectedFkColumn.value) {
+									columns = columns.map(col => {
+										if (col.name === currentColumnForFk) {
+											return {
+												...col,
+												foreignKey: {
+													table: selectedFkTable.value,
+													column: selectedFkColumn.value
+												}
+											};
+										}
+										return col;
+									});
+									showFkDialog = false;
+									selectedFkTable = { value: '' };
+									selectedFkColumn = { value: '' };
+									availableFkColumns = [];
+									toast.success(editingExistingFk ? 'Foreign key updated' : 'Foreign key added');
+								} else {
+									toast.error('Please select both a table and column');
 								}
-								return col;
-							});
-							showFkDialog = false;
-							selectedFkTable = { value: '' };
-							selectedFkColumn = { value: '' };
-							availableFkColumns = [];
-						}
-					}}>Confirm</AlertDialog.Action>
+							}}
+						>
+							{editingExistingFk ? 'Update' : 'Confirm'}
+						</AlertDialog.Action>
+					</div>
 				</AlertDialog.Footer>
 			</AlertDialog.Content>
 		</AlertDialog.Root>
@@ -377,35 +431,93 @@
 									<span class="text-xs text-muted-foreground capitalize">{column.type}</span>
 								</div>
 								<div class="flex justify-end gap-2">
-									<Button variant="ghost" size="icon" 
-										class={`h-8 w-8 ${column.isPrimaryKey ? "bg-chart-2/80" : "bg-chart-2/10"} hover:bg-chart-2/60`} 
-										on:click={() => {
-											columns = columns.map(col => {
-												if (col.name === column.name) {
-													return { ...col, isPrimaryKey: !col.isPrimaryKey };
-												}
-												return col;
-											});
-										}}>
-										PK
-									</Button>
-									<Button variant="ghost" size="icon" 
-											class={`h-8 w-8 ${column.foreignKey ? "bg-chart-3/80" : "bg-chart-3/10"} hover:bg-chart-3/60`} 
+									{#if column.isPrimaryKey}
+										<span 
+											class="px-1.5 py-0.5 text-xs text-muted-foreground font-semibold rounded bg-chart-2/80 hover:bg-chart-2/60 cursor-pointer" 
 											on:click={() => {
+												columns = columns.map(col => {
+													if (col.name === column.name) {
+														return { ...col, isPrimaryKey: !col.isPrimaryKey };
+													}
+													return col;
+												});
+											}}
+											aria-label="Toggle primary key"
+										>
+											PK
+										</span>
+									{:else}
+										<span 
+											class="px-1.5 py-0.5 text-xs text-muted-foreground font-semibold rounded bg-chart-2/10 hover:bg-chart-2/60 cursor-pointer" 
+											on:click={() => {
+												columns = columns.map(col => {
+													if (col.name === column.name) {
+														return { ...col, isPrimaryKey: !col.isPrimaryKey };
+													}
+													return col;
+												});
+											}}
+											aria-label="Toggle primary key"
+										>
+											PK
+										</span>
+									{/if}
+
+									{#if column.foreignKey}
+										<span 
+											class="px-1.5 py-0.5 text-xs text-muted-foreground font-semibold rounded bg-chart-3/80 hover:bg-chart-3/60 cursor-pointer" 
+											on:click={() => {
+												currentColumnForFk = column.name;
+												editingExistingFk = !!column.foreignKey;
+												
 												if (column.foreignKey) {
-													columns = columns.map(col => {
-														if (col.name === column.name) {
-															return { ...col, foreignKey: undefined };
-														}
-														return col;
-													});
+													selectedFkTable = { value: column.foreignKey.table };
+													
+													const table = $databaseStore.tables.find(t => t.name === column.foreignKey?.table);
+													if (table) {
+														availableFkColumns = table.columns;
+														selectedFkColumn = { value: column.foreignKey.column };
+													}
 												} else {
-													currentColumnForFk = column.name;
-													showFkDialog = true;
+													selectedFkTable = { value: '' };
+													selectedFkColumn = { value: '' };
+													availableFkColumns = [];
 												}
-											}}>
+												
+												showFkDialog = true;
+											}}
+											aria-label="Configure foreign key"
+										>
 											FK
-										</Button>
+										</span>
+									{:else}
+										<span 
+											class="px-1.5 py-0.5 text-xs text-muted-foreground font-semibold rounded bg-chart-3/10 hover:bg-chart-3/60 cursor-pointer" 
+											on:click={() => {
+												currentColumnForFk = column.name;
+												editingExistingFk = !!column.foreignKey;
+												
+												if (column.foreignKey) {
+													selectedFkTable = { value: column.foreignKey.table };
+													
+													const table = $databaseStore.tables.find(t => t.name === column.foreignKey?.table);
+													if (table) {
+														availableFkColumns = table.columns;
+														selectedFkColumn = { value: column.foreignKey.column };
+													}
+												} else {
+													selectedFkTable = { value: '' };
+													selectedFkColumn = { value: '' };
+													availableFkColumns = [];
+												}
+												
+												showFkDialog = true;
+											}}
+											aria-label="Configure foreign key"
+										>
+											FK
+										</span>
+									{/if}
 									<Button
 										variant="ghost"
 										size="icon"

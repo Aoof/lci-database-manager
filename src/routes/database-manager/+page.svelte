@@ -106,7 +106,7 @@
 
 <div class="container mx-auto p-4 md:p-6 lg:p-8">
 	<h1 class="text-3xl font-bold mb-6">Database Manager</h1>
-
+<!-- 
 	<div class="mb-6 flex justify-start">
 		<Sheet.Root>
 			<Sheet.Trigger asChild let:builder>
@@ -124,7 +124,7 @@
 				</div>
 			</Sheet.Content>
 		</Sheet.Root>
-	</div>
+	</div> -->
 
 	<section class="mb-6 p-4 border rounded-lg bg-card text-card-foreground">
 		<h2 class="text-xl font-semibold mb-4">Table Management</h2>
@@ -197,12 +197,13 @@
 											on:click={() => handleSort(column.name)}
 										>
 											{column.name.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase())}
+											
 											{#if column.isPrimaryKey}
 												<Tooltip.Root>
 													<Tooltip.Trigger>
-														<Button variant="ghost" size="icon" class="w-full text-xs text-muted-foreground capitalize h-8 w-8 bg-chart-2/80">
+														<span class="ml-1.5 px-1.5 py-0.5 text-xs text-muted-foreground font-semibold rounded bg-chart-2/80 inline-flex items-center">
 															PK
-														</Button>
+														</span>
 													</Tooltip.Trigger>
 													<Tooltip.Content>
 														{selectedTableName}.PrimaryKey
@@ -213,12 +214,38 @@
 											{#if column.foreignKey}
 												<Tooltip.Root>
 													<Tooltip.Trigger>
-														<Button variant="ghost" size="icon" class="w-full text-xs text-muted-foreground capitalize h-8 w-8 bg-chart-2/80">
+														<span class="ml-1.5 px-1.5 py-0.5 text-xs text-muted-foreground font-semibold rounded bg-chart-3/80 inline-flex items-center">
 															FK
-														</Button>
+														</span>
 													</Tooltip.Trigger>
 													<Tooltip.Content>
 														{column.foreignKey.table}.{column.foreignKey.column}
+													</Tooltip.Content>
+												</Tooltip.Root>	
+											{/if}
+
+											{#if column.isUnique}
+												<Tooltip.Root>
+													<Tooltip.Trigger>
+														<span class="ml-1.5 px-1.5 py-0.5 text-xs text-muted-foreground font-semibold rounded bg-chart-3/80 inline-flex items-center">
+															UQ
+														</span>
+													</Tooltip.Trigger>
+													<Tooltip.Content>
+														{selectedTableName}.{column.name} is Unique
+													</Tooltip.Content>
+												</Tooltip.Root>	
+											{/if}
+
+											{#if column.checkString}
+												<Tooltip.Root>
+													<Tooltip.Trigger>
+														<span class="ml-1.5 px-1.5 py-0.5 text-xs text-muted-foreground font-semibold rounded bg-chart-4/80 inline-flex items-center">
+															CHK
+														</span>
+													</Tooltip.Trigger>
+													<Tooltip.Content>
+														{column.checkString}
 													</Tooltip.Content>
 												</Tooltip.Root>	
 											{/if}
@@ -234,7 +261,61 @@
 											{/if}
 										</Button>
 									{:else}
-										<div class="font-medium px-2 py-2 text-left">{column.name}</div>
+										<div class="font-medium px-2 py-2 text-left">
+											{column.name.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase())}
+											
+											{#if column.isPrimaryKey}
+												<Tooltip.Root>
+													<Tooltip.Trigger>
+														<span class="ml-1.5 px-1.5 py-0.5 text-xs text-muted-foreground font-semibold rounded bg-chart-2/80 inline-flex items-center">
+															PK
+														</span>
+													</Tooltip.Trigger>
+													<Tooltip.Content>
+														{selectedTableName}.PrimaryKey
+													</Tooltip.Content>
+												</Tooltip.Root>
+											{/if}
+
+											{#if column.foreignKey}
+												<Tooltip.Root>
+													<Tooltip.Trigger>
+														<span class="ml-1.5 px-1.5 py-0.5 text-xs text-muted-foreground font-semibold rounded bg-chart-3/80 inline-flex items-center">
+															FK
+														</span>
+													</Tooltip.Trigger>
+													<Tooltip.Content>
+														{column.foreignKey.table}.{column.foreignKey.column}
+													</Tooltip.Content>
+												</Tooltip.Root>	
+											{/if}
+
+											{#if column.isUnique}
+												<Tooltip.Root>
+													<Tooltip.Trigger>
+														<span class="ml-1.5 px-1.5 py-0.5 text-xs text-muted-foreground font-semibold rounded bg-chart-3/80 inline-flex items-center">
+															UQ
+														</span>
+													</Tooltip.Trigger>
+													<Tooltip.Content>
+														{selectedTableName}.{column.name} is Unique
+													</Tooltip.Content>
+												</Tooltip.Root>	
+											{/if}
+
+											{#if column.checkString}
+												<Tooltip.Root>
+													<Tooltip.Trigger>
+														<span class="ml-1.5 px-1.5 py-0.5 text-xs text-muted-foreground font-semibold rounded bg-chart-4/80 inline-flex items-center">
+															CHK
+														</span>
+													</Tooltip.Trigger>
+													<Tooltip.Content>
+														{column.checkString}
+													</Tooltip.Content>
+												</Tooltip.Root>	
+											{/if}
+										</div>
 									{/if}
 								</Table.Head>
 							{/each}
@@ -242,7 +323,7 @@
 						</Table.Row>
 					</Table.Header>
 					<Table.Body>
-						{#each sortedRows as row (row.id)}
+						{#each sortedRows as row, index (row.id ? `${row.id}-${index}` : `row-${index}`)}
 							<Table.Row>
 								{#each $tableStore.selectedTable?.columns || [] as column (column.name)}
 									<Table.Cell>

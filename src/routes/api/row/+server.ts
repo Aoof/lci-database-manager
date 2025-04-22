@@ -95,32 +95,32 @@ export async function PUT({ url, request }) {
 		return json({ error: 'Invalid identifier or values structure' }, { status: 400 });
 	}
 
-	const setClause = Object.entries(values)
-		.map(([key, value]) => {
-			if (!isValidIdentifier(key)) {
-				throw new Error(`Invalid column name: ${key}`);
-			}
-			return format('%I = %L', key, value);
-		})
-		.join(', ');
-
-	const whereClause = Object.entries(identifier)
-		.map(([key, value]) => {
-			if (!isValidIdentifier(key)) {
-				return json({ error: `Invalid column name in identifier: ${key}` }, { status: 400 });
-			}
-			return format('%I = %L', key, value);
-		})
-		.join(' AND ');
-
-	const query = format('UPDATE %I SET %s WHERE %s', tableName, setClause, whereClause);
-
 	try {
+		// Validate column names first
+		for (const key of [...Object.keys(values), ...Object.keys(identifier)]) {
+			if (!isValidIdentifier(key)) {
+				return json({ error: `Invalid column name: ${key}` }, { status: 400 });
+			}
+		}
+		
+		const setClause = Object.entries(values)
+			.map(([key, value]) => format('%I = %L', key, value))
+			.join(', ');
+
+		const whereClause = Object.entries(identifier)
+			.map(([key, value]) => format('%I = %L', key, value))
+			.join(' AND ');
+
+		const query = format('UPDATE %I SET %s WHERE %s', tableName, setClause, whereClause);
+
 		await db.query(query);
 		return json({ query, message: 'Row updated successfully!' }, { status: 200 });
-	} catch (error) {
+	} catch (error: any) {
 		console.error('Error executing query:', error);
-		return json({ error: 'Error executing query' }, { status: 500 });
+		return json({ 
+			error: `Error updating row: ${error.message || 'Unknown error'}`,
+			details: error.detail || null
+		}, { status: 500 });
 	}
 }
 

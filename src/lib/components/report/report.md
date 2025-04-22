@@ -1,6 +1,6 @@
 # Database Schema Analysis Report
 
-> This report analyzes the database schema implemented in [`final-script.sql`](/final-script.sql) which satisfies Third Normal Form (3NF) requirements through:
+This report analyzes the database schema implemented in [final-script.sql](/final-script) which satisfies Third Normal Form (3NF) requirements through:
 
 ## 3NF Compliance Verification
 
@@ -57,26 +57,6 @@ CREATE TABLE Orders (
     status VARCHAR2(20) CHECK(status IN ('Pending', 'Shipped', 'Delivered', 'Cancelled')),
     total NUMBER(10,2) DEFAULT 0
 );
-```
-
-## Implementation Details
-
-### Entity-Relationship Diagram (Conceptual)
-
-```mermaid
-erDiagram
-    Customers
-    Products
-    Orders
-    Categories
-    Suppliers
-
-    Customers ||--o{ Orders : "Placed"
-    Products ||--o{ Orders : "Includes"
-    Products ||--|{ Order_Details : "Sold"
-    Orders ||--o{ Order_Details : "Contains"
-    Products ||--|{ Categories : "Belongs to"
-    Products ||--|{ Suppliers : "Supplied by"
 ```
 
 # SQL Command Implementation Report

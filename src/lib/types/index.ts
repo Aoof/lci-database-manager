@@ -10,7 +10,7 @@ export interface Column {
   isNotNull?: boolean;
   isUnique?: boolean;
   checkString?: string;
-  foreignKey?: { table: string; column: string }
+  foreignKey?: { table: string; column: string };
 }
 
 export interface Row {
