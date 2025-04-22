@@ -1,6 +1,6 @@
 # Database Schema Analysis Report
 
-This report analyzes the database schema implemented in [final-script.sql](/final-script) which satisfies Third Normal Form (3NF) requirements through:
+This report analyzes the database schema implemented in [final-script.sql](/final-script.sql?raw) which satisfies Third Normal Form (3NF) requirements through:
 
 ## 3NF Compliance Verification
 
