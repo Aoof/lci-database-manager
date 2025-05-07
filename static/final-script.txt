@@ -7,15 +7,6 @@ ALTER USER c##lci_database_manager QUOTA 200M ON users;
 CONNECT c##lci_database_manager/1234;
 
 -- Creating Tables with Constraints
-
-DROP TABLE System_Users CASCADE;
-DROP TABLE Order_Details CASCADE;
-DROP TABLE Orders CASCADE;
-DROP TABLE Products CASCADE;
-DROP TABLE Suppliers CASCADE;
-DROP TABLE Categories CASCADE;
-DROP TABLE Customers CASCADE;
-
 CREATE TABLE Customers (
     customer_id NUMBER(8) CONSTRAINT customers_customer_id_pk PRIMARY KEY,
     first_name VARCHAR2(50) CONSTRAINT customers_first_name_nn NOT NULL,
@@ -162,5 +153,22 @@ SELECT first_name, last_name, email, phone, address, created_at FROM Customers W
 
 CREATE OR REPLACE VIEW elite_customers AS
 SELECT first_name, last_name, email, phone, address, created_at FROM Customers
-WHERE created_at < ADD_MONTHS(SYSDATE, -6 * 12) WITH CHECK OPTION;
+WHERE created_at < ADD_MONTHS(SYSDATE, -6 * 12) WITH CHECK OPTION; -- Only allow updates to customers who have been with us for more than 6 months
 
+-- Utilizing String Functions
+CREATE OR REPLACE VIEW v_customers_full_name AS
+SELECT customer_id, UPPER(first_name || ' ' || last_name) AS full_name, email, phone, address, created_at
+FROM Customers;
+
+CREATE OR REPLACE VIEW v_product_prices AS
+SELECT product_id, product_name, CEIL(price) AS rounded_price, FLOOR(stock_quantity) AS stock_quantity
+FROM Products;
+
+-- Using JOINs
+CREATE OR REPLACE VIEW v_order_details AS
+SELECT o.order_id, c.first_name || ' ' || c.last_name AS customer_name, p.product_name, od.quantity, od.unit_price
+FROM Orders o
+JOIN Customers c ON o.customer_id = c.customer_id
+JOIN Order_Details od ON o.order_id = od.order_id
+JOIN Products p ON od.product_id = p.product_id
+ORDER BY o.order_id, od.product_id;

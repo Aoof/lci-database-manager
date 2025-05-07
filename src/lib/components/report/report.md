@@ -1,54 +1,51 @@
 # Database Schema Analysis Report
 
-This report analyzes the database schema implemented in [final-script.sql](/final-script.sql?raw) which satisfies Third Normal Form (3NF) requirements through:
+This report analyzes the database schema implemented in [final-script.sql](/final-script.txt), which satisfies Third Normal Form (3NF) requirements.
 
-## 3NF Compliance Verification
+## 3NF Compliance Analysis
 
-### Core 3NF Characteristics
-1. **Primary Key Dependencies**
-   - All non-key attributes depend entirely on primary keys
-   - Example: Product details (name, price) depend solely on product_id
+The database schema demonstrates 3NF compliance through:
 
-2. **No Transitive Dependencies**
-   - Non-key attributes don't depend on other non-key attributes
-   - Example: Customer address doesn't determine email/phone
+1. **Primary Key Dependencies**: All non-key attributes depend on the primary key
+2. **No Transitive Dependencies**: No attributes depend on other non-key attributes
+3. **Proper Foreign Key Relationships**: All relationships are enforced through constraints
+4. **Comprehensive Constraints**: Appropriate NOT NULL, CHECK, and UNIQUE constraints
 
-3. **Foreign Key Relationships**
-   - Orders.customer_id references Customers.customer_id
-   - Products.category_id references Categories.category_id
+## Schema Structure
 
-4. **Constraint Implementation**
-   - CHECK constraints (price > 0, status enums)
-   - NOT NULL constraints on critical fields
-   - UNIQUE constraints for email/username
+The implemented schema consists of seven properly normalized tables:
+- Customers: Stores customer personal information
+- Categories: Contains product categorization data
+- Suppliers: Manages supplier information
+- Products: Tracks inventory with appropriate relationships
+- Orders: Records order headers with customer references
+- Order_Details: Implements the many-to-many relationship between orders and products
+- System_Users: Manages system access and permissions
 
-## Schema Structure Analysis
+```mermaid
+erDiagram
+    Customers ||--o{ Orders : places
+    Categories ||--o{ Products : categorizes
+    Suppliers ||--o{ Products : supplies
+    Products ||--o{ Order_Details : included_in
+    Orders ||--o{ Order_Details : contains
+```
 
-The 3NF-compliant schema implements these core tables:
+## SQL Features Implemented
 
+### User Management
+
+**CREATE USER / GRANT / ALTER USER**
 ```sql
-CREATE TABLE Customers (
-    customer_id NUMBER(8) CONSTRAINT customers_customer_id_pk PRIMARY KEY,
-    first_name VARCHAR2(50) CONSTRAINT customers_first_name_nn NOT NULL,
-    last_name VARCHAR2(50) CONSTRAINT customers_last_name_nn NOT NULL,
-    email VARCHAR2(100) CONSTRAINT customers_email_uq UNIQUE CONSTRAINT customers_email_nn NOT NULL,
-    phone VARCHAR2(15),
-    address VARCHAR2(255),
-    created_at DATE DEFAULT SYSDATE
-);
+CREATE USER c##lci_database_manager IDENTIFIED BY 1234;
+GRANT connect, resource TO c##lci_database_manager;
+ALTER USER c##lci_database_manager QUOTA 200M ON users;
+```
 
-CREATE TABLE Categories (
-    category_id NUMBER(2) CONSTRAINT categories_category_id_pk PRIMARY KEY,
-    category_name VARCHAR2(100) CONSTRAINT categories_category_name_nn NOT NULL,
-    description VARCHAR2(255)
-);
+### Table Creation and Constraints
 
-CREATE TABLE Suppliers (
-    supplier_id NUMBER(5) CONSTRAINT suppliers_supplier_id_pk PRIMARY KEY,
-    supplier_name VARCHAR2(100) CONSTRAINT suppliers_supplier_name_nn NOT NULL,
-    contact_info VARCHAR2(255)
-);
-
+**CREATE TABLE with PRIMARY KEY, FOREIGN KEY, NOT NULL, UNIQUE, CHECK constraints**
+```sql
 CREATE TABLE Products (
     product_id NUMBER(8) CONSTRAINT products_product_id_pk PRIMARY KEY,
     product_name VARCHAR2(100) CONSTRAINT products_product_name_nn NOT NULL,
@@ -60,695 +57,103 @@ CREATE TABLE Products (
     CONSTRAINT products_category_id_fk FOREIGN KEY (category_id) REFERENCES Categories(category_id),
     CONSTRAINT products_supplier_id_fk FOREIGN KEY (supplier_id) REFERENCES Suppliers(supplier_id)
 );
-
-CREATE TABLE Orders (
-    order_id NUMBER(8) CONSTRAINT orders_order_id_pk PRIMARY KEY,
-    customer_id NUMBER(8) CONSTRAINT orders_customer_id_nn NOT NULL,
-    order_date DATE DEFAULT SYSDATE,
-    status VARCHAR2(20) CONSTRAINT orders_status_ck CHECK(status IN ('Pending', 'Shipped', 'Delivered', 'Cancelled')),
-    total NUMBER(10,2) DEFAULT 0,
-    CONSTRAINT orders_customer_id_fk FOREIGN KEY (customer_id) REFERENCES Customers(customer_id)
-);
-
-CREATE TABLE Order_Details (
-    order_id NUMBER(8) CONSTRAINT order_details_order_id_nn NOT NULL,
-    product_id NUMBER(8) CONSTRAINT order_details_product_id_nn NOT NULL,
-    quantity NUMBER(4) CONSTRAINT order_details_quantity_nn NOT NULL CONSTRAINT order_details_quantity_ck CHECK(quantity > 0),
-    unit_price NUMBER(10,2) CONSTRAINT order_details_unit_price_nn NOT NULL,
-    CONSTRAINT order_details_pk PRIMARY KEY (order_id, product_id),
-    CONSTRAINT order_details_order_id_fk FOREIGN KEY (order_id) REFERENCES Orders(order_id),
-    CONSTRAINT order_details_product_id_fk FOREIGN KEY (product_id) REFERENCES Products(product_id)
-);
-
-CREATE TABLE System_Users (
-    user_id NUMBER(5) CONSTRAINT system_users_user_id_pk PRIMARY KEY,
-    username VARCHAR2(50) CONSTRAINT system_users_username_uq UNIQUE CONSTRAINT system_users_username_nn NOT NULL,
-    password VARCHAR2(255) CONSTRAINT system_users_password_nn NOT NULL,
-    role VARCHAR2(20) CONSTRAINT system_users_role_ck CHECK(role IN ('Admin', 'Manager', 'Sales'))
-);
 ```
 
-### Entity-Relationship Diagram
+### Sequence Management
 
-```mermaid
-erDiagram
-    Customers
-    Products
-    Orders
-    Categories
-    Suppliers
-
-    Customers ||--o{ Orders : "Placed"
-    Products ||--o{ Orders : "Includes"
-    Products ||--|{ Order_Details : "Sold"
-    Orders ||--o{ Order_Details : "Contains"
-    Products ||--|{ Categories : "Belongs to"
-    Products ||--|{ Suppliers : "Supplied by"
-```
-
-# SQL Command Implementation Report
-
-## Data Retrieval
-
-### 1. SELECT
-
-**Description:** Used to retrieve data from one or more tables.
-**Example:**
-
+**CREATE SEQUENCE / NEXTVAL / CURRVAL**
 ```sql
-SELECT empno, ename, job, sal
-FROM emp
-WHERE sal > 2999;
+CREATE SEQUENCE customers_seq START WITH 1 INCREMENT BY 1;
+INSERT INTO Customers VALUES (customers_seq.NEXTVAL, 'John', 'Smith', ...);
+INSERT INTO Orders VALUES (orders_seq.NEXTVAL, 1, TO_DATE('2023-01-15', 'YYYY-MM-DD'), ...);
+INSERT INTO Order_Details VALUES (orders_seq.CURRVAL, 1, 1, 699.99);
 ```
 
-### 2. CREATE VIEW
+### View Creation
 
-**Description:** Creates a virtual table based on a SELECT query.
-**Example:**
-
+**CREATE OR REPLACE VIEW with READ ONLY and CHECK OPTION**
 ```sql
-CREATE OR REPLACE VIEW employee AS
-SELECT empno, ename, job, deptno FROM emp;
+CREATE OR REPLACE VIEW v_customers AS
+SELECT first_name, last_name, email, phone, address, created_at 
+FROM Customers WITH READ ONLY;
+
+CREATE OR REPLACE VIEW elite_customers AS
+SELECT first_name, last_name, email, phone, address, created_at FROM Customers
+WHERE created_at < ADD_MONTHS(SYSDATE, -6 * 12) WITH CHECK OPTION;
 ```
 
-### 3. GROUP BY
+### String Functions
 
-**Description:** Groups rows sharing a property and applies aggregate functions.
-**Example:**
-
+**String Concatenation, UPPER**
 ```sql
-SELECT deptno, MAX(sal), MIN(sal), AVG(sal), SUM(sal)
-FROM emp
-GROUP BY deptno;
+CREATE OR REPLACE VIEW v_customers_full_name AS
+SELECT customer_id, UPPER(first_name || ' ' || last_name) AS full_name, email, phone, address, created_at
+FROM Customers;
 ```
 
-### 4. HAVING
+### Mathematical Functions
 
-**Description:** Filters groups based on a condition.
-**Example:**
-
+**CEIL, FLOOR**
 ```sql
-SELECT deptno, MAX(sal), MIN(sal), AVG(sal), SUM(sal)
-FROM emp
-GROUP BY deptno
-HAVING MIN(sal) > 900;
+CREATE OR REPLACE VIEW v_product_prices AS
+SELECT product_id, product_name, CEIL(price) AS rounded_price, FLOOR(stock_quantity) AS stock_quantity
+FROM Products;
 ```
 
----
+### Date Functions
 
-## Data Manipulation
-
-### 5. INSERT
-
-**Description:** Adds new rows to a table.
-**Example:**
-
+**ADD_MONTHS, SYSDATE**
 ```sql
-INSERT INTO dept(loc, deptno, dname)
-VALUES ('MONTREAL', 50, 'Marketing');
+CREATE OR REPLACE VIEW elite_customers AS
+SELECT first_name, last_name, email, phone, address, created_at FROM Customers
+WHERE created_at < ADD_MONTHS(SYSDATE, -6 * 12) WITH CHECK OPTION;
 ```
 
-### 6. UPDATE
+### Joins
 
-**Description:** Modifies existing rows in a table.
-**Example:**
-
+**Multi-table JOIN**
 ```sql
-UPDATE dept
-SET dname = 'Computer', loc = 'Toronto'
-WHERE deptno = 52;
+CREATE OR REPLACE VIEW v_order_details AS
+SELECT o.order_id, c.first_name || ' ' || c.last_name AS customer_name, p.product_name, od.quantity, od.unit_price
+FROM Orders o
+JOIN Customers c ON o.customer_id = c.customer_id
+JOIN Order_Details od ON o.order_id = od.order_id
+JOIN Products p ON od.product_id = p.product_id
+ORDER BY o.order_id, od.product_id;
 ```
 
-### 7. DELETE
+### Transaction Management
 
-**Description:** Removes rows from a table.
-**Example:**
-
-```sql
-DELETE FROM dept
-WHERE deptno = 52;
-```
-
----
-
-## Data Definition
-
-### 8. CREATE TABLE
-
-**Description:** Creates a new table in the database.
-**Example:**
-
-```sql
-CREATE TABLE student (sid NUMBER, sname VARCHAR2(50), birthdate DATE);
-```
-
-### 9. ALTER TABLE
-
-**Description:** Modifies the structure of an existing table.
-**Examples:**
-
-- Add a column:
-
-```sql
-ALTER TABLE member ADD (gender CHAR(1));
-```
-
-- Drop a column:
-
-```sql
-ALTER TABLE member DROP COLUMN phone;
-```
-
-### 10. DROP TABLE
-
-**Description:** Deletes a table and its data permanently.
-**Example:**
-
-```sql
-DROP TABLE student;
-```
-
----
-
-## Constraints
-
-### 11. PRIMARY KEY
-
-**Description:** Ensures that a column (or combination of columns) has unique values and cannot be NULL.
-**Example:**
-
-```sql
-ALTER TABLE member ADD CONSTRAINT member_mid_PK PRIMARY KEY (mid);
-```
-
-### 12. FOREIGN KEY
-
-**Description:** Establishes a relationship between two tables.
-**Example:**
-
-```sql
-ALTER TABLE rental ADD CONSTRAINT rental_mid_FK FOREIGN KEY(mid) REFERENCES member(mid);
-```
-
-### 13. UNIQUE
-
-**Description:** Ensures all values in a column are unique.
-**Example:**
-
-```sql
-ALTER TABLE member ADD CONSTRAINT member_email_UK UNIQUE(email);
-```
-
-### 14. CHECK
-
-**Description:** Ensures that all values in a column satisfy a specific condition.
-**Example:**
-
-```sql
-ALTER TABLE video ADD CONSTRAINT video_price_CC CHECK (price >= 0);
-```
-
-### 15. NOT NULL
-
-**Description:** Ensures that a column cannot have NULL values.
-**Example:**
-
-```sql
-ALTER TABLE video MODIFY (title CONSTRAINT video_title_NN NOT NULL);
-```
-
----
-
-## Transactions
-
-### 16. SAVEPOINT
-
-**Description:** Creates a point in a transaction to which you can roll back.
-**Example:**
-
-```sql
-SAVEPOINT savepoint_name;
-```
-
-### 17. ROLLBACK
-
-**Description:** Undoes changes made in the current transaction.
-**Example:**
-
-```sql
-ROLLBACK TO savepoint_name;
-```
-
-### 18. COMMIT
-
-**Description:** Saves all changes made in the current transaction.
-**Example:**
-
+**COMMIT**
 ```sql
 COMMIT;
 ```
 
----
+### Data Manipulation
 
-## User Management
-
-### 19. CREATE USER
-
-**Description:** Creates a new database user.
-**Example:**
-
+**INSERT**
 ```sql
-CREATE USER c##sofia IDENTIFIED BY 1234;
+INSERT INTO Categories VALUES (categories_seq.NEXTVAL, 'Electronics', 'Electronic devices and accessories');
 ```
 
-### 20. GRANT
+### Data Type Conversion & Formatting
 
-**Description:** Grants privileges to a user.
-**Example:**
-
+**TO_DATE**
 ```sql
-GRANT connect, resource TO c##sofia;
+INSERT INTO Orders VALUES (orders_seq.NEXTVAL, 1, TO_DATE('2023-01-15', 'YYYY-MM-DD'), 'Delivered', 849.98);
 ```
 
-### 21. DROP USER
+# Conclusion
+This report shows some of the competencies we've acquired in our database course, including the ability to create a well-structured database schema that adheres to 3NF principles. The implementation of various SQL features demonstrates our understanding of database management and design.
 
-**Description:** Deletes a user and all their objects.
-**Example:**
+We could've added more features but we decided to keep it simple as we've spent a lot of time on the database manager system for a unique presentation. We hope you enjoyed it and learned something new. Thank you for your attention!
 
-```sql
-DROP USER c##sofia CASCADE;
-```
+## Signing off,
 
-### 22. ALTER USER
+**Abdulrahman Mousa**
 
-**Description:** Modifies a user's attributes.
-**Example:**
+**Sofia Saldumbide Rissotto**
 
-```sql
-ALTER USER c##sofia QUOTA 100M ON users;
-```
+**Akshay Kheterpal**
 
----
-
-## Sequences
-
-### 23. CREATE SEQUENCE
-
-**Description:** Creates a sequence to generate unique values.
-**Example:**
-
-```sql
-CREATE SEQUENCE dept_sequence START WITH 52 INCREMENT BY 2;
-```
-
-### 24. NEXTVAL / CURRVAL
-
-**Description:** Retrieves the next or current value of a sequence.
-**Examples:**
-
-- Get the next value:
-
-```sql
-SELECT dept_sequence.NEXTVAL FROM dual;
-```
-
-- Get the current value:
-
-```sql
-SELECT dept_sequence.CURRVAL FROM dual;
-```
-
-### 25. ALTER SEQUENCE
-
-**Description:** Modifies an existing sequence.
-**Example:**
-
-```sql
-ALTER SEQUENCE dept_sequence INCREMENT BY 5;
-```
-
----
-
-## Views
-
-### 26. CREATE OR REPLACE VIEW
-
-**Description:** Creates or updates a view.
-**Example:**
-
-```sql
-CREATE OR REPLACE VIEW employee AS
-SELECT empno, ename, job, deptno FROM emp;
-```
-
-### 27. WITH READ ONLY
-
-**Description:** Restricts a view to be read-only.
-**Example:**
-
-```sql
-CREATE OR REPLACE VIEW employee_read AS
-SELECT empno, ename, job, deptno FROM emp
-WITH READ ONLY;
-```
-
-### 28. WITH CHECK OPTION
-
-**Description:** Ensures that data modifications through a view adhere to the view's WHERE clause.
-**Example:**
-
-```sql
-CREATE OR REPLACE VIEW employee_30 AS
-SELECT empno, ename, job, sal, deptno
-FROM emp
-WHERE deptno = 30
-WITH CHECK OPTION;
-```
-
-### 29. FORCE VIEW
-
-**Description:** Creates a view even if the base tables do not exist.
-**Example:**
-
-```sql
-CREATE OR REPLACE FORCE VIEW child_detail AS
-SELECT mid, mname, cid, cname, mom_id
-FROM mother, child
-WHERE mother.mid = child.mom_id;
-```
-
----
-
-## String Functions
-
-### 30. SUBSTR
-
-**Description:** Extracts a substring from a string.
-**Example:**
-
-```sql
-SELECT term_desc, SUBSTR(term_desc, 1, 4)
-FROM term;
-```
-
-### 31. UPPER / LOWER / INITCAP
-
-**Description:** Converts strings to uppercase, lowercase, or capitalizes the first letter.
-**Examples:**
-
-- Uppercase:
-
-```sql
-SELECT UPPER(s_last) FROM student;
-```
-
-- Lowercase:
-
-```sql
-SELECT LOWER(s_last) FROM student;
-```
-
-- Capitalize:
-
-```sql
-SELECT INITCAP(s_last) FROM student;
-```
-
-### 32. REPLACE
-
-**Description:** Replaces occurrences of a substring within a string.
-**Example:**
-
-```sql
-SELECT REPLACE(term_desc, '200', '202') FROM term;
-```
-
-### 33. LPAD / RPAD
-
-**Description:** Pads a string with characters on the left or right.
-**Example:**
-
-```sql
-SELECT LPAD(credits, 3, '0') FROM course;
-```
-
-### 34. LTRIM / RTRIM
-
-**Description:** Removes characters from the left or right of a string.
-**Example:**
-
-```sql
-SELECT LTRIM(call_id, 'MIS ') FROM course;
-```
-
-### 35. LENGTH
-
-**Description:** Returns the length of a string.
-**Example:**
-
-```sql
-SELECT LENGTH('example') FROM dual;
-```
-
----
-
-## Mathematical Functions
-
-### 36. MOD
-
-**Description:** Returns the remainder of a division operation.
-**Example:**
-
-```sql
-SELECT MOD(10, 3)
-FROM dual;
-```
-
-### 37. POWER
-
-**Description:** Raises a number to the power of another number.
-**Example:**
-
-```sql
-SELECT POWER(2, 3)
-FROM dual;
-```
-
-### 38. ABS / CEIL / FLOOR
-
-**Description:** Performs mathematical operations on numbers.
-**Examples:**
-
-- Absolute value:
-
-```sql
-SELECT ABS(-5) FROM dual;
-```
-
-- Round up:
-
-```sql
-SELECT CEIL(259.01) FROM dual;
-```
-
-- Round down:
-
-```sql
-SELECT FLOOR(259.99) FROM dual;
-```
-
-### 39. ROUND
-
-**Description:** Rounds a number to a specified precision.
-**Example:**
-
-```sql
-SELECT ROUND(123.456, 2)
-FROM dual;
-```
-
----
-
-## Date Functions
-
-### 40. ADD_MONTHS
-
-**Description:** Adds a specified number of months to a date.
-**Example:**
-
-```sql
-SELECT ADD_MONTHS(sysdate, 11)
-FROM dual;
-```
-
-### 41. LAST_DAY
-
-**Description:** Returns the last day of the month for a given date.
-**Example:**
-
-```sql
-SELECT LAST_DAY(TO_DATE('19 02 2024', 'DD MM YYYY'))
-FROM dual;
-```
-
-### 42. MONTHS_BETWEEN
-
-**Description:** Calculates the number of months between two dates.
-**Example:**
-
-```sql
-SELECT MONTHS_BETWEEN(sysdate, TO_DATE('25 03 1997', 'DD MM YYYY')) FROM dual;
-```
-
-### 43. INTERVAL
-
-**Description:** Represents a period of time.
-**Examples:**
-
-- Year to month:
-
-```sql
-SELECT TO_YMINTERVAL('0-11') FROM dual;
-```
-
-- Day to second:
-
-```sql
-SELECT TO_DSINTERVAL('0 23:59:30') FROM dual;
-```
-
-### 44. TO_CHAR
-
-**Description:** Converts a date or number to a string.
-**Example:**
-
-```sql
-SELECT TO_CHAR(sysdate, 'DD Month YYYY Day Year HH:MI:SS Am')
-FROM dual;
-```
-
----
-
-## Miscellaneous
-
-### 45. IS NULL / IS NOT NULL
-
-**Description:** Checks for NULL or non-NULL values.
-**Examples:**
-
-- IS NOT NULL:
-
-```sql
-SELECT empno, ename, job, sal, comm
-FROM emp
-WHERE comm IS NOT NULL;
-```
-
-- IS NULL:
-
-```sql
-SELECT empno, ename, job, sal, comm
-FROM emp
-WHERE comm IS NULL;
-```
-
-### 46. NVL
-
-**Description:** Replaces NULL with a specified value.
-**Example:**
-
-```sql
-SELECT empno, ename, sal, NVL(comm, 0), sal * 12 + NVL(comm, 0) "Annual Salary"
-FROM emp;
-```
-
-### 47. NVL2
-
-**Description:** Returns different values based on whether a column is NULL or NOT NULL.
-**Example:**
-
-```sql
-SELECT NVL2(comm, 2000, 500) FROM emp;
-```
-
-### 48. SPOOL
-
-**Description:** Writes the output of SQL commands to a file.
-**Example:**
-
-```sql
-SPOOL c:\DB1\output.txt;
-```
-
-### 49. COUNT
-
-**Description:** Returns the number of rows matching a condition.
-**Example:**
-
-```sql
-SELECT COUNT(*)
-FROM emp;
-```
-
-### 50. MAX / MIN / AVG / SUM
-
-**Description:** Aggregate functions to calculate maximum, minimum, average, and sum.
-**Example:**
-
-```sql
-SELECT MAX(sal), MIN(sal), AVG(sal), SUM(sal)
-FROM emp;
-```
-
-### 51. ORDER BY
-
-**Description:** Sorts the result set in ascending or descending order.
-**Example:**
-
-```sql
-SELECT ename, sal
-FROM emp
-ORDER BY sal DESC;
-```
-
-### 52. LIKE
-
-**Description:** Searches for a specified pattern in a column.
-**Examples:**
-
-- Starts with 'M':
-
-```sql
-SELECT empno, ename, job, sal
-FROM emp
-WHERE ename LIKE 'M%';
-```
-
-- Ends with 'N':
-
-```sql
-SELECT empno, ename, job, sal
-FROM emp
-WHERE ename LIKE '%N';
-```
-
-### 53. JOIN
-
-**Description:** Combines rows from two or more tables based on a related column.
-**Examples:**
-
-- Inner Join:
-
-```sql
-SELECT empno, ename, job, emp.deptno, dept.dname
-FROM emp, dept
-WHERE emp.deptno = dept.deptno;
-```
-
-- Outer Join:
-
-```sql
-SELECT empno, ename, job, emp.deptno, dept.dname
-FROM emp, dept
-WHERE emp.deptno = dept.deptno(+);
-```
+**Shayan Delbari**
