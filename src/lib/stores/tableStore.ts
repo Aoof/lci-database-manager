@@ -19,6 +19,10 @@ export const tableStore = writable<TableState>(initialState);
 
 export const tableActions = {
 	deleteTable: async (tableName: string) => {
+		toast.info(`This action is disabled to maintain data integrity in the demo version.`, {
+			duration: 5000,
+		});
+		return;
 		try {
 			const response = await fetch(`/api/table?table=${tableName}`, {
 				method: 'DELETE'
@@ -41,37 +45,41 @@ export const tableActions = {
 	},
 
 	addRow: async (values: Record<string, any>) => {
-		try {
-			const state = get(tableStore);
-			if (!state.selectedTable) {
-				throw new Error('No table selected');
-			}
+		toast.info(`This action is disabled to maintain data integrity in the demo version.`, {
+			duration: 5000,
+		});
+		return;
+		// try {
+		// 	const state = get(tableStore);
+		// 	if (!state.selectedTable) {
+		// 		throw new Error('No table selected');
+		// 	}
 
-			const tableName = state.selectedTable.name;
+		// 	const tableName = state.selectedTable.name;
 
-			const response = await fetch(`/api/row?table=${tableName}`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({ values })
-			});
+		// 	const response = await fetch(`/api/row?table=${tableName}`, {
+		// 		method: 'POST',
+		// 		headers: {
+		// 			'Content-Type': 'application/json'
+		// 		},
+		// 		body: JSON.stringify({ values })
+		// 	});
 
-			const result = await response.json();
+		// 	const result = await response.json();
 
-			if (response.ok) {
-				if (result.query) { dbCommand(result.query); }
-				await tableActions.selectTable(tableName);
-				return { success: true, message: result.message ?? 'Row added successfully' }; // Use ??
-			} else {
-				toast.error(result.error ?? 'Failed to add row'); // Use ??
-				return { success: false, message: result.error ?? 'Failed to add row' }; // Use ??
-			}
-		} catch (error) {
-			console.error('Error adding row:', error);
-			toast.error('An error occurred while adding the row');
-			return { success: false, message: 'An error occurred while adding the row' };
-		}
+		// 	if (response.ok) {
+		// 		if (result.query) { dbCommand(result.query); }
+		// 		await tableActions.selectTable(tableName);
+		// 		return { success: true, message: result.message ?? 'Row added successfully' }; // Use ??
+		// 	} else {
+		// 		toast.error(result.error ?? 'Failed to add row'); // Use ??
+		// 		return { success: false, message: result.error ?? 'Failed to add row' }; // Use ??
+		// 	}
+		// } catch (error) {
+		// 	console.error('Error adding row:', error);
+		// 	toast.error('An error occurred while adding the row');
+		// 	return { success: false, message: 'An error occurred while adding the row' };
+		// }
 	},
 
 	unSelectTable: () => tableStore.update((_) => initialState),
@@ -176,109 +184,117 @@ export const tableActions = {
 	},
 
 	deleteRow: async (rowId: number) => {
-		try {
-			const state = get(tableStore);
-			if (!state.selectedTable) {
-				throw new Error('No table selected');
-			}
+		toast.info(`This action is disabled to maintain data integrity in the demo version.`, {
+			duration: 5000,
+		});
+		return;
+		// try {
+		// 	const state = get(tableStore);
+		// 	if (!state.selectedTable) {
+		// 		throw new Error('No table selected');
+		// 	}
 
-			const tableName = state.selectedTable.name;
-			const identifier = { id: rowId };
+		// 	const tableName = state.selectedTable.name;
+		// 	const identifier = { id: rowId };
 
-			const response = await fetch(`/api/row?table=${tableName}`, {
-				method: 'DELETE',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(identifier)
-			});
+		// 	const response = await fetch(`/api/row?table=${tableName}`, {
+		// 		method: 'DELETE',
+		// 		headers: {
+		// 			'Content-Type': 'application/json'
+		// 		},
+		// 		body: JSON.stringify(identifier)
+		// 	});
 
-			const result = await response.json();
+		// 	const result = await response.json();
 
-			if (response.ok) {
-				if (result.query) { dbCommand(result.query); }
-				tableStore.update((state) => {
-					const newRows = state.selectedTable ? state.selectedTable.rows.filter((row) => row.id !== rowId) : [];
-					const newTotalItems = state.pagination.totalItems - 1;
-					return {
-						...state,
-						selectedTable: state.selectedTable
-							? {
-									...state.selectedTable,
-									rows: newRows
-								}
-							: null,
-						pagination: {
-							...state.pagination,
-							totalItems: newTotalItems > 0 ? newTotalItems : 0
-						}
-					};
-				});
-				return { success: true, message: result.message };
-			} else {
-				toast.error(result.error ?? 'Failed to delete row'); // Use ??
-				return { success: false, message: result.error ?? 'Failed to delete row' }; // Use ??
-			}
-		} catch (error) {
-			console.error('Error deleting row:', error);
-			toast.error('An error occurred while deleting the row');
-			return { success: false, message: 'An error occurred while deleting the row' };
-		}
+		// 	if (response.ok) {
+		// 		if (result.query) { dbCommand(result.query); }
+		// 		tableStore.update((state) => {
+		// 			const newRows = state.selectedTable ? state.selectedTable.rows.filter((row) => row.id !== rowId) : [];
+		// 			const newTotalItems = state.pagination.totalItems - 1;
+		// 			return {
+		// 				...state,
+		// 				selectedTable: state.selectedTable
+		// 					? {
+		// 							...state.selectedTable,
+		// 							rows: newRows
+		// 						}
+		// 					: null,
+		// 				pagination: {
+		// 					...state.pagination,
+		// 					totalItems: newTotalItems > 0 ? newTotalItems : 0
+		// 				}
+		// 			};
+		// 		});
+		// 		return { success: true, message: result.message };
+		// 	} else {
+		// 		toast.error(result.error ?? 'Failed to delete row'); // Use ??
+		// 		return { success: false, message: result.error ?? 'Failed to delete row' }; // Use ??
+		// 	}
+		// } catch (error) {
+		// 	console.error('Error deleting row:', error);
+		// 	toast.error('An error occurred while deleting the row');
+		// 	return { success: false, message: 'An error occurred while deleting the row' };
+		// }
 	},
 
 	updateRow: async (rowId: number, values: Record<string, any>) => {
-		try {
-			const state = get(tableStore);
-			if (!state.selectedTable) {
-				throw new Error('No table selected');
-			}
+		toast.info(`This action is disabled to maintain data integrity in the demo version.`, {
+			duration: 5000,
+		});
+		return;
+		// try {
+		// 	const state = get(tableStore);
+		// 	if (!state.selectedTable) {
+		// 		throw new Error('No table selected');
+		// 	}
 
-			const tableName = state.selectedTable.name;
-			const identifier = { id: rowId };
+		// 	const tableName = state.selectedTable.name;
+		// 	const identifier = { id: rowId };
 
-			// Remove any empty string values to avoid SQL type conversion issues
-			const cleanedValues = { ...values };
-			Object.keys(cleanedValues).forEach(key => {
-				if (cleanedValues[key] === '') {
-					cleanedValues[key] = null;
-				}
-			});
+		// 	// Remove any empty string values to avoid SQL type conversion issues
+		// 	const cleanedValues = { ...values };
+		// 	Object.keys(cleanedValues).forEach(key => {
+		// 		if (cleanedValues[key] === '') {
+		// 			cleanedValues[key] = null;
+		// 		}
+		// 	});
 
-			const response = await fetch(`/api/row?table=${tableName}`, {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({ identifier, values: cleanedValues })
-			});
+		// 	const response = await fetch(`/api/row?table=${tableName}`, {
+		// 		method: 'PUT',
+		// 		headers: {
+		// 			'Content-Type': 'application/json'
+		// 		},
+		// 		body: JSON.stringify({ identifier, values: cleanedValues })
+		// 	});
 
-			const result = await response.json();
+		// 	const result = await response.json();
 
-			if (response.ok) {
-				if (result.query) { dbCommand(result.query); }
-				tableStore.update((state) => ({
-					...state,
-					selectedTable: state.selectedTable
-						? {
-								...state.selectedTable,
-								rows: state.selectedTable.rows.map((row) =>
-									row.id === rowId ? { ...row, ...cleanedValues } : row
-								)
-							}
-						: null
-				}));
-				return { success: true, message: result.message };
-			} else {
-				const errorMessage = result.details ? `${result.error}: ${result.details}` : result.error;
-				toast.error(errorMessage || 'Failed to update row');
-				return { success: false, message: errorMessage || 'Failed to update row' };
-			}
-		} catch (error: any) {
-			console.error('Error updating row:', error);
-			const errorMessage = error.message || 'An error occurred while updating the row';
-			toast.error(errorMessage);
-			return { success: false, message: errorMessage };
-		}
+		// 	if (response.ok) {
+		// 		if (result.query) { dbCommand(result.query); }
+		// 		tableStore.update((state) => ({
+		// 			...state,
+		// 			selectedTable: state.selectedTable
+		// 				? {
+		// 						...state.selectedTable,
+		// 						rows: state.selectedTable.rows.map((row) =>
+		// 							row.id === rowId ? { ...row, ...cleanedValues } : row
+		// 						)
+		// 					}
+		// 				: null
+		// 		}));
+		// 		return { success: true, message: result.message };
+		// 	} else {
+		// 		const errorMessage = result.details ? `${result.error}: ${result.details}` : result.error;
+		// 		toast.error(errorMessage || 'Failed to update row');
+		// 		return { success: false, message: errorMessage || 'Failed to update row' };
+		// 	}
+		// } catch (error: any) {
+		// 	console.error('Error updating row:', error);
+		// 	const errorMessage = error.message || 'An error occurred while updating the row';
+		// 	toast.error(errorMessage);
+		// 	return { success: false, message: errorMessage };
+		// }
 	}
 };
 

@@ -77,56 +77,58 @@ const getConstraintsBody = (columns: Column[]) => {
 export const databaseOperations = {
 	// Create a new table
 	async createTable(tableName: string, columns: Column[]) {
-		isLoading.set(true);
-		try {
-			const response = await fetch(`/api/table?table=${tableName}`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({ columns: getTableBody(columns) })
-			});
+		return { success: false, message: 'This action is disabled to maintain data integrity in the demo version.' };
+		// isLoading.set(true);
+		// try {
+		// 	const response = await fetch(`/api/table?table=${tableName}`, {
+		// 		method: 'POST',
+		// 		headers: {
+		// 			'Content-Type': 'application/json'
+		// 		},
+		// 		body: JSON.stringify({ columns: getTableBody(columns) })
+		// 	});
 
-			const result = await response.json();
-			isLoading.set(false);
+		// 	const result = await response.json();
+		// 	isLoading.set(false);
 
-			if (response.ok) {
-				const constraintResponse = await fetch(`/api/constraint?table=${tableName}`, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify(getConstraintsBody(columns))
-				})
+		// 	if (response.ok) {
+		// 		const constraintResponse = await fetch(`/api/constraint?table=${tableName}`, {
+		// 			method: 'POST',
+		// 			headers: {
+		// 				'Content-Type': 'application/json'
+		// 			},
+		// 			body: JSON.stringify(getConstraintsBody(columns))
+		// 		})
 
-				const constraintResult = await constraintResponse.json();
-				if (!constraintResponse.ok) {
-					isLoading.set(false);
-					return { success: false, message: constraintResult.error || 'Failed to create constraints' };
-				}
+		// 		const constraintResult = await constraintResponse.json();
+		// 		if (!constraintResponse.ok) {
+		// 			isLoading.set(false);
+		// 			return { success: false, message: constraintResult.error || 'Failed to create constraints' };
+		// 		}
 
-				// Show the SQL query using the DbCommand component
-				if (result.query) {
-					dbCommand(result.query);
-				}
+		// 		// Show the SQL query using the DbCommand component
+		// 		if (result.query) {
+		// 			dbCommand(result.query);
+		// 		}
 
-				if (constraintResult.query) {
-					dbCommand(constraintResult.query);
-				}
+		// 		if (constraintResult.query) {
+		// 			dbCommand(constraintResult.query);
+		// 		}
 
-				return { success: true, message: result.message };
-			} else {
-				return { success: false, message: result.error || 'Failed to create table' };
-			}
-		} catch (error) {
-			isLoading.set(false);
-			console.error('Error creating table:', error);
-			return { success: false, message: 'An error occurred while creating the table' };
-		}
+		// 		return { success: true, message: result.message };
+		// 	} else {
+		// 		return { success: false, message: result.error || 'Failed to create table' };
+		// 	}
+		// } catch (error) {
+		// 	isLoading.set(false);
+		// 	console.error('Error creating table:', error);
+		// 	return { success: false, message: 'An error occurred while creating the table' };
+		// }
 	},
 
 	// Update an existing table
 	async updateTable(tableName: string, columns: Column[]) {
+		return { success: false, message: 'This action is disabled to maintain data integrity in the demo version.' };
 		isLoading.set(true);
 		try {
 			// Convert columns to the format expected by the API
