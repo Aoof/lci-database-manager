@@ -5,6 +5,11 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Separator } from '$lib/components/ui/separator';
 	import type { ToasterProps } from 'svelte-sonner';
+	import { onMount } from 'svelte';
+
+	onMount(() => {
+		document.documentElement.classList.add('dark');
+	});
 
 	let { children } = $props();
 	let toastOptions : ToasterProps = {
